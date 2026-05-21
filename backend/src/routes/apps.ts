@@ -1,31 +1,9 @@
 import { Router, Request, Response } from 'express'
-import { getDb, saveDb } from '../database'
+import { getDb, queryAll, execute } from '../database'
 import { v4 as uuid } from 'uuid'
 import type { ApiResponse, AppInfo, AppConfig } from '../types'
 
 const router = Router()
-
-// 辅助：执行 SELECT 并返回对象数组
-function queryAll(db: any, sql: string, params: any[] = []): Record<string, any>[] {
-  try {
-    const stmt = db.prepare(sql)
-    stmt.bind(params)
-    const rows: Record<string, any>[] = []
-    while (stmt.step()) {
-      rows.push(stmt.getAsObject())
-    }
-    stmt.free()
-    return rows
-  } catch {
-    return []
-  }
-}
-
-// 辅助：执行 INSERT/UPDATE/DELETE
-function execute(db: any, sql: string, params: any[] = []) {
-  db.run(sql, params)
-  saveDb()
-}
 
 // 获取所有分类及应用
 router.get('/categories', async (_req: Request, res: Response) => {

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import { exec } from 'child_process'
 import path from 'path'
 import fs from 'fs'
-import { getDb, saveDb } from '../database'
+import { getDb, queryAll } from '../database'
 
 const router = Router()
 
@@ -92,16 +92,7 @@ router.post('/copy-pkg', async (req: Request, res: Response) => {
   }
 
   const db = await getDb()
-  const rows = (() => {
-    try {
-      const stmt = db.prepare('SELECT value FROM config WHERE key = ?')
-      stmt.bind(['base_directory'])
-      const results: any[] = []
-      while (stmt.step()) results.push(stmt.getAsObject())
-      stmt.free()
-      return results
-    } catch { return [] }
-  })()
+  const rows = queryAll(db, 'SELECT value FROM config WHERE key = ?', ['base_directory'])
   const baseDir = rows[0]?.value || ''
 
   const targetDir = path.join(baseDir, appName)

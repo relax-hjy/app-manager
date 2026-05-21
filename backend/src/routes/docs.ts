@@ -1,29 +1,9 @@
 import { Router, Request, Response } from 'express'
-import { getDb, saveDb } from '../database'
+import { getDb, queryAll, execute } from '../database'
 import { v4 as uuid } from 'uuid'
 import type { ApiResponse, DocInfo } from '../types'
 
 const router = Router()
-
-function queryAll(db: any, sql: string, params: any[] = []): Record<string, any>[] {
-  try {
-    const stmt = db.prepare(sql)
-    stmt.bind(params)
-    const rows: Record<string, any>[] = []
-    while (stmt.step()) {
-      rows.push(stmt.getAsObject())
-    }
-    stmt.free()
-    return rows
-  } catch {
-    return []
-  }
-}
-
-function execute(db: any, sql: string, params: any[] = []) {
-  db.run(sql, params)
-  saveDb()
-}
 
 // 获取所有文档（支持 ?search= 模糊搜索）
 router.get('/', async (req: Request, res: Response) => {

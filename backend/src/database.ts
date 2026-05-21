@@ -83,4 +83,24 @@ function initTables() {
   try { db.exec(`ALTER TABLE documents ADD COLUMN description TEXT NOT NULL DEFAULT ''`) } catch {}
 }
 
+export function queryAll(db: SqlJsDatabase, sql: string, params: any[] = []): Record<string, any>[] {
+  try {
+    const stmt = db.prepare(sql)
+    stmt.bind(params)
+    const rows: Record<string, any>[] = []
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject())
+    }
+    stmt.free()
+    return rows
+  } catch {
+    return []
+  }
+}
+
+export function execute(db: SqlJsDatabase, sql: string, params: any[] = []) {
+  db.run(sql, params)
+  saveDb()
+}
+
 export { saveDb }
