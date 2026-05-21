@@ -15,7 +15,7 @@
 | 层 | 技术 |
 |---|------|
 | 后端 | Express + sql.js (SQLite/WASM) + TypeScript |
-| 前端 | React 19 + Vite 8 + Tailwind CSS 4 + shadcn/ui |
+| 前端 | React 19 + Vite 8 + Tailwind CSS 4 + shadcn 风格组件（Radix UI 原语） |
 | 路由 | React Router 7 |
 
 ## 目录结构
@@ -33,7 +33,7 @@ app-manager/
 │   │       ├── docs.ts   # 文档 CRUD API
 │   │       └── native.ts # 本机操作 API（启动/打开/复制）
 │   └── data/             # SQLite 数据库文件（运行时生成）
-└── frontend-admin/       # React 管理前端
+└── frontend/       # React 管理前端
     └── src/
         ├── api.ts        # 后端 API 封装
         ├── App.tsx       # 路由配置
@@ -45,19 +45,38 @@ app-manager/
 
 ## 快速开始
 
+### 开发模式
+
 ```bash
 # 1. 后端
 cd backend
 npm install
-npm run dev        # 开发模式，默认 http://localhost:3001
+npm run dev        # http://localhost:3001
 
 # 2. 前端（新终端）
-cd frontend-admin
+cd frontend
 npm install
-npm run dev        # 开发模式，默认 http://localhost:5173
+npm run dev        # http://localhost:5173
 ```
 
 前端通过 Vite proxy 将 `/api` 请求转发到后端，无需额外配置。
+
+### 生产模式
+
+```bash
+# 1. 构建
+cd backend && npm run build       # TS → JS
+cd ../frontend && npm run build   # React → 静态文件
+
+# 2. 启动（单进程，前后端合并）
+cd ../backend
+# Linux/macOS / Git Bash:
+export NODE_ENV=production && npm start
+# Windows CMD:
+set NODE_ENV=production && npm start
+```
+
+访问 `http://localhost:3001` 即可，后端托管前端静态文件，无需单独启动前端服务。
 
 ## API 概览
 
@@ -72,6 +91,7 @@ npm run dev        # 开发模式，默认 http://localhost:5173
 | `DELETE /api/apps/apps/:id` | 删除应用 |
 | `GET/PUT /api/apps/config` | 获取 / 更新配置 |
 | `GET/POST /api/docs` | 文档列表（支持 `?search=`）/ 新增 |
+| `GET /api/docs/categories` | 获取所有已使用的文档分类 |
 | `PATCH/DELETE /api/docs/:id` | 更新 / 删除文档 |
 | `GET /api/docs/by-app/:appId` | 获取应用关联文档 |
 | `POST /api/native/launch` | 启动应用 |

@@ -86,6 +86,26 @@ export function saveDocFile(filePath: string, content: string) {
   })
 }
 
+export function deleteDocCategory(format: string, category: string) {
+  return request('/native/delete-category', { method: 'POST', body: JSON.stringify({ format, category }) })
+}
+
+export function ensureDocDirs() {
+  return request<{ created: string[] }>('/native/ensure-doc-dirs', { method: 'POST' })
+}
+
+export function scanDocs(scope?: { format?: string; category?: string }) {
+  return request<{
+    docDir: string
+    newFiles: { name: string; path: string; format: string; category: string }[]
+    newCategories: { format: string; category: string; fileCount: number }[]
+    allCategories: { format: string; category: string; fileCount: number }[]
+    deletedDocs: { id: string; name: string; path: string; format: string; category: string }[]
+    totalScanned: number
+    totalNew: number
+  }>('/native/scan-docs', { method: 'POST', body: JSON.stringify(scope || {}) })
+}
+
 // 原生操作
 export function launchApp(filePath: string) {
   return request('/native/launch', { method: 'POST', body: JSON.stringify({ filePath }) })

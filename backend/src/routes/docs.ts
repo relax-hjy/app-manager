@@ -16,7 +16,7 @@ router.get('/', async (req: Request, res: Response) => {
       [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`]
     )
   } else {
-    docs = queryAll(db, 'SELECT * FROM documents ORDER BY rowid DESC')
+    docs = queryAll(db, 'SELECT * FROM documents ORDER BY format, category, name')
   }
   res.json({ success: true, data: docs } as ApiResponse)
 })
