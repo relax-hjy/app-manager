@@ -5,6 +5,7 @@ dist-ssr
 
 # Runtime data
 backend/data/*.db
+backend/data/icons/
 
 # Logs
 logs

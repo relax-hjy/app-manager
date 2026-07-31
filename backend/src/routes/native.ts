@@ -1,10 +1,73 @@
 import { Router, Request, Response } from 'express'
 import { exec } from 'child_process'
+import { randomUUID } from 'crypto'
 import path from 'path'
 import fs from 'fs'
+import multer from 'multer'
 import { getDb, queryAll } from '../database'
 
 const router = Router()
+
+// 图标缓存目录
+const ICONS_DIR = path.join(__dirname, '..', '..', 'data', 'icons')
+
+// 从 EXE 提取图标（通过应用 ID）
+router.get('/icon/:appId', async (req: Request, res: Response) => {
+  const db = await getDb()
+  const rows = queryAll(db, 'SELECT path FROM apps WHERE id = ?', [req.params.appId]) as any[]
+  if (!rows.length || !rows[0].path) {
+    res.status(404).json({ success: false, message: '应用不存在或未设置路径' })
+    return
+  }
+
+  const exePath = rows[0].path
+  if (!fs.existsSync(exePath)) {
+    res.status(404).json({ success: false, message: `文件不存在: ${exePath}` })
+    return
+  }
+
+  // 检查缓存
+  if (!fs.existsSync(ICONS_DIR)) fs.mkdirSync(ICONS_DIR, { recursive: true })
+  const iconPath = path.join(ICONS_DIR, `${req.params.appId}.png`)
+  if (fs.existsSync(iconPath)) {
+    res.sendFile(iconPath)
+    return
+  }
+
+  // 用 PowerShell 提取图标（写入临时脚本文件避免转义问题）
+  const tmpPath = path.join(ICONS_DIR, `tmp-${randomUUID()}.png`)
+  const scriptPath = path.join(ICONS_DIR, `tmp-${randomUUID()}.ps1`)
+  const psScript = `
+Add-Type -AssemblyName System.Drawing
+$icon = [System.Drawing.Icon]::ExtractAssociatedIcon('${exePath.replace(/'/g, "''")}')
+$bmp = $icon.ToBitmap()
+$bmp.Save('${tmpPath.replace(/'/g, "''")}', [System.Drawing.Imaging.ImageFormat]::Png)
+$bmp.Dispose()
+$icon.Dispose()
+`
+  fs.writeFileSync(scriptPath, psScript, 'utf-8')
+
+  exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`, (err) => {
+    // 清理临时脚本
+    try { fs.unlinkSync(scriptPath) } catch {}
+
+    if (err) {
+      console.error('[native] extract icon error:', err.message)
+      res.status(500).json({ success: false, message: '提取图标失败' })
+      return
+    }
+    if (!fs.existsSync(tmpPath)) {
+      res.status(500).json({ success: false, message: '图标提取未生成文件' })
+      return
+    }
+    // 重命名为正式缓存文件
+    fs.renameSync(tmpPath, iconPath)
+    res.sendFile(iconPath)
+  })
+})
+
+// multer 配置：内存存储，单文件上传
+const upload = multer({ storage: multer.memoryStorage() })
 
 // 启动应用（打开 exe 文件）
 router.post('/launch', (req: Request, res: Response) => {
@@ -79,7 +142,7 @@ router.post('/check-path', (req: Request, res: Response) => {
   res.json({ success: true, data: { exists, path: filePath } })
 })
 
-// 复制安装包到管理目录
+// 复制安装包到管理目录（通过文件路径）
 router.post('/copy-pkg', async (req: Request, res: Response) => {
   const { sourcePath, appName } = req.body as { sourcePath: string; appName: string }
   if (!sourcePath || !appName) {
@@ -94,6 +157,10 @@ router.post('/copy-pkg', async (req: Request, res: Response) => {
   const db = await getDb()
   const rows = queryAll(db, 'SELECT value FROM config WHERE key = ?', ['base_directory'])
   const baseDir = rows[0]?.value || ''
+  if (!baseDir) {
+    res.status(400).json({ success: false, message: '未配置安装包基础目录，请先在系统设置中配置' })
+    return
+  }
 
   const targetDir = path.join(baseDir, appName)
   if (!fs.existsSync(targetDir)) {
@@ -103,6 +170,39 @@ router.post('/copy-pkg', async (req: Request, res: Response) => {
   const filename = path.basename(sourcePath)
   const destPath = path.join(targetDir, filename)
   fs.copyFileSync(sourcePath, destPath)
+
+  res.json({ success: true, data: { path: destPath } })
+})
+
+// 上传安装包到管理目录（通过文件上传）
+router.post('/upload-pkg', upload.single('file'), async (req: Request, res: Response) => {
+  const file = req.file
+  const appName = req.body?.appName as string | undefined
+
+  if (!file) {
+    res.status(400).json({ success: false, message: '未选择文件' })
+    return
+  }
+  if (!appName) {
+    res.status(400).json({ success: false, message: '应用名称不能为空' })
+    return
+  }
+
+  const db = await getDb()
+  const rows = queryAll(db, 'SELECT value FROM config WHERE key = ?', ['base_directory'])
+  const baseDir = rows[0]?.value || ''
+  if (!baseDir) {
+    res.status(400).json({ success: false, message: '未配置安装包基础目录，请先在系统设置中配置' })
+    return
+  }
+
+  const targetDir = path.join(baseDir, appName)
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true })
+  }
+
+  const destPath = path.join(targetDir, file.originalname)
+  fs.writeFileSync(destPath, file.buffer)
 
   res.json({ success: true, data: { path: destPath } })
 })

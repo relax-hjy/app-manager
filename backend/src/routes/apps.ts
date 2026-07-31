@@ -1,9 +1,14 @@
 import { Router, Request, Response } from 'express'
 import { getDb, queryAll, execute } from '../database'
 import { v4 as uuid } from 'uuid'
+import path from 'path'
+import fs from 'fs'
 import type { ApiResponse, AppInfo, AppConfig } from '../types'
 
 const router = Router()
+
+// 图标缓存目录
+const ICONS_DIR = path.join(__dirname, '..', '..', 'data', 'icons')
 
 // 获取所有分类及应用
 router.get('/categories', async (_req: Request, res: Response) => {
@@ -96,6 +101,7 @@ router.delete('/apps/:id', async (req: Request, res: Response) => {
 // 更新应用
 router.patch('/apps/:id', async (req: Request, res: Response) => {
   const db = await getDb()
+  const appId = req.params.id
   const updates = req.body as Record<string, any>
   const allowed = ['name', 'version', 'path', 'description', 'is_installed', 'exe_pkg', 'zip_pkg']
   const sets: string[] = []
@@ -118,8 +124,22 @@ router.patch('/apps/:id', async (req: Request, res: Response) => {
     res.status(400).json({ success: false, message: '无有效更新字段' })
     return
   }
-  values.push(req.params.id)
+  values.push(appId)
   execute(db, `UPDATE apps SET ${sets.join(', ')} WHERE id = ?`, values)
+
+  // 如果更新了 path，清除图标缓存，强制重新提取
+  if (updates.path !== undefined) {
+    const iconPath = path.join(ICONS_DIR, `${appId}.png`)
+    if (fs.existsSync(iconPath)) {
+      try {
+        fs.unlinkSync(iconPath)
+        console.log(`[apps] cleared icon cache for app ${appId}`)
+      } catch (err) {
+        console.error(`[apps] failed to clear icon cache:`, err)
+      }
+    }
+  }
+
   res.json({ success: true, message: '更新成功' })
 })
 

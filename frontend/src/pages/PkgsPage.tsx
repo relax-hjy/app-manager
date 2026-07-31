@@ -362,7 +362,9 @@ function PkgForm({ type, currentValue, appName, onClose, onSave }: {
   onClose: () => void; onSave: (value: string) => void
 }) {
   const [value, setValue] = useState(currentValue)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [copying, setCopying] = useState(false)
+  const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleBrowse() {
@@ -372,26 +374,51 @@ function PkgForm({ type, currentValue, appName, onClose, onSave }: {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const filePath = file.name
-    setValue(filePath)
+    setSelectedFile(file)
+    setValue(file.name)
+    setError('')
     // 重置 input，允许重复选择同一文件
     e.target.value = ''
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError('')
+
+    // 优先使用浏览选择的文件进行上传
+    if (selectedFile) {
+      setCopying(true)
+      try {
+        const res = await api.uploadPkg(selectedFile, appName)
+        if (res.success && res.data) {
+          onSave(res.data.path)
+        } else {
+          setError(res.message || '上传安装包失败')
+        }
+      } catch (err: any) {
+        setError(err?.message || '上传安装包失败')
+      } finally {
+        setCopying(false)
+      }
+      return
+    }
+
+    // 否则使用手动输入的路径
     const src = value.trim()
-    if (!src) return
+    if (!src) {
+      setError('请输入文件路径或点击浏览选择文件')
+      return
+    }
     setCopying(true)
     try {
       const res = await api.copyPkg(src, appName)
       if (res.success && res.data) {
         onSave(res.data.path)
       } else {
-        alert(res.message || '复制安装包失败')
+        setError(res.message || '复制安装包失败')
       }
-    } catch {
-      alert('复制安装包失败')
+    } catch (err: any) {
+      setError(err?.message || '复制安装包失败，请检查文件路径是否正确')
     } finally {
       setCopying(false)
     }
@@ -409,18 +436,24 @@ function PkgForm({ type, currentValue, appName, onClose, onSave }: {
         onChange={handleFileChange}
       />
       <p className="text-sm text-muted-foreground">
-        为 <strong>{appName}</strong> 设置 {type === 'exe_pkg' ? 'EXE' : 'ZIP'} 安装包路径
+        为 <strong>{appName}</strong> 设置 {type === 'exe_pkg' ? 'EXE' : 'ZIP'} 安装包
       </p>
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">{type === 'exe_pkg' ? 'EXE 路径' : 'ZIP 路径'}</label>
+        <label className="text-sm font-medium">{type === 'exe_pkg' ? 'EXE 安装包' : 'ZIP 压缩包'}</label>
         <div className="flex gap-2">
-          <Input value={value} onChange={e => setValue(e.target.value)} className="flex-1"
-            placeholder={type === 'exe_pkg' ? '选择 .exe 安装包' : '选择 .zip 压缩包'} />
-          <Button type="button" variant="outline" size="icon" onClick={handleBrowse} title="浏览文件">
+          <Input value={value} onChange={e => { setValue(e.target.value); setSelectedFile(null); setError('') }} className="flex-1"
+            placeholder={type === 'exe_pkg' ? '选择 .exe 文件或粘贴完整路径' : '选择 .zip 文件或粘贴完整路径'} />
+          <Button type="button" variant="outline" size="icon" onClick={handleBrowse} title="浏览并上传文件">
             <FolderOpen className="h-4 w-4" />
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground">
+          点击浏览按钮选择文件将直接上传；也可手动粘贴完整路径（如 <code>D:\Downloads\setup.exe</code>）
+        </p>
       </div>
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+      )}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onClose}>取消</Button>
         <Button type="submit" disabled={copying}>{copying ? '复制中...' : '保存'}</Button>

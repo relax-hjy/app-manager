@@ -206,8 +206,21 @@ export default function AppsPage() {
                 >
                   {/* Header */}
                   <div className="flex items-center gap-3 p-4 pb-2">
-                    <div className={`h-10 w-10 rounded-lg ${catColor(app.category).bg} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-                      {app.name.charAt(0)}
+                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${app.path && app.is_installed ? 'bg-white' : `${catColor(app.category).bg} text-white`}`}>
+                      {app.path && app.is_installed ? (
+                        <img
+                          src={api.getAppIconUrl(app.id)}
+                          alt={app.name}
+                          className="h-full w-full object-contain"
+                          onError={e => {
+                            const img = e.target as HTMLImageElement
+                            img.style.display = 'none'
+                            const fallback = img.nextElementSibling as HTMLElement
+                            if (fallback) { fallback.style.display = ''; fallback.textContent = app.name.charAt(0) }
+                          }}
+                        />
+                      ) : null}
+                      <span style={app.path && app.is_installed ? { display: 'none' } : undefined}>{app.name.charAt(0)}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[#1f2329] truncate" style={{ fontSize: 16 }}>
@@ -268,8 +281,21 @@ export default function AppsPage() {
       {selectedApp && (
         <aside className="w-72 rounded-xl border bg-card p-5 shadow-sm overflow-auto space-y-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-lg ${catColor(selectedApp.category).bg} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-              {selectedApp.name.charAt(0)}
+            <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${selectedApp.path && selectedApp.is_installed ? 'bg-white' : `${catColor(selectedApp.category).bg} text-white`}`}>
+              {selectedApp.path && selectedApp.is_installed ? (
+                <img
+                  src={api.getAppIconUrl(selectedApp.id)}
+                  alt={selectedApp.name}
+                  className="h-full w-full object-contain"
+                  onError={e => {
+                    const img = e.target as HTMLImageElement
+                    img.style.display = 'none'
+                    const fallback = img.nextElementSibling as HTMLElement
+                    if (fallback) { fallback.style.display = ''; fallback.textContent = selectedApp.name.charAt(0) }
+                  }}
+                />
+              ) : null}
+              <span style={selectedApp.path && selectedApp.is_installed ? { display: 'none' } : undefined}>{selectedApp.name.charAt(0)}</span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-[#1f2329] truncate" style={{ fontSize: 16 }}>

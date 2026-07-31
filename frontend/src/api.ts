@@ -106,6 +106,11 @@ export function scanDocs(scope?: { format?: string; category?: string }) {
   }>('/native/scan-docs', { method: 'POST', body: JSON.stringify(scope || {}) })
 }
 
+// 应用图标（返回图片 URL，由 <img> src 直接使用）
+export function getAppIconUrl(appId: string) {
+  return `${BASE}/native/icon/${encodeURIComponent(appId)}`
+}
+
 // 原生操作
 export function launchApp(filePath: string) {
   return request('/native/launch', { method: 'POST', body: JSON.stringify({ filePath }) })
@@ -129,6 +134,19 @@ export function copyPkg(sourcePath: string, appName: string) {
   return request<{ path: string }>('/native/copy-pkg', {
     method: 'POST', body: JSON.stringify({ sourcePath, appName }),
   })
+}
+
+export function uploadPkg(file: File, appName: string) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('appName', appName)
+  return fetch('/api/native/upload-pkg', {
+    method: 'POST',
+    body: formData,
+  }).then(res => {
+    if (!res.ok) return res.json().then(err => { throw new Error((err as any).message || 'Upload failed') })
+    return res.json()
+  }) as Promise<ApiResponse<{ path: string }>>
 }
 
 // 配置
