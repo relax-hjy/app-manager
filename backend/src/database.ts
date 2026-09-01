@@ -81,6 +81,7 @@ function initTables() {
   `)
 
   try { db.exec(`ALTER TABLE documents ADD COLUMN description TEXT NOT NULL DEFAULT ''`) } catch {}
+  try { db.exec(`ALTER TABLE apps ADD COLUMN download_url TEXT NOT NULL DEFAULT ''`) } catch {}
 }
 
 export function queryAll(db: SqlJsDatabase, sql: string, params: any[] = []): Record<string, any>[] {

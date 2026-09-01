@@ -65,9 +65,9 @@ router.get('/categories/:name/apps', async (req: Request, res: Response) => {
 // 添加应用
 router.post('/apps', async (req: Request, res: Response) => {
   const db = await getDb()
-  const { name, version, path, description, category, exe_pkg, zip_pkg } = req.body as {
+  const { name, version, path, description, category, exe_pkg, zip_pkg, download_url } = req.body as {
     name: string; version?: string; path?: string; description?: string
-    category: string; exe_pkg?: string; zip_pkg?: string
+    category: string; exe_pkg?: string; zip_pkg?: string; download_url?: string
   }
   if (!name || !category) {
     res.status(400).json({ success: false, message: '应用名称和分类不能为空' })
@@ -80,14 +80,14 @@ router.post('/apps', async (req: Request, res: Response) => {
   }
   const appId = uuid()
   execute(db,
-    `INSERT INTO apps (id, name, version, path, description, category_id, exe_pkg, zip_pkg)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [appId, name, version || '', path || '', description || '', cat.id, exe_pkg || '', zip_pkg || '']
+    `INSERT INTO apps (id, name, version, path, description, category_id, exe_pkg, zip_pkg, download_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [appId, name, version || '', path || '', description || '', cat.id, exe_pkg || '', zip_pkg || '', download_url || '']
   )
   res.json({
     success: true,
     data: { id: appId, name, version: version || '', path: path || '', description: description || '',
-            is_installed: false, exe_pkg: exe_pkg || '', zip_pkg: zip_pkg || '', category }
+            is_installed: false, exe_pkg: exe_pkg || '', zip_pkg: zip_pkg || '', download_url: download_url || '', category }
   } as ApiResponse)
 })
 
@@ -103,7 +103,7 @@ router.patch('/apps/:id', async (req: Request, res: Response) => {
   const db = await getDb()
   const appId = req.params.id
   const updates = req.body as Record<string, any>
-  const allowed = ['name', 'version', 'path', 'description', 'is_installed', 'exe_pkg', 'zip_pkg']
+  const allowed = ['name', 'version', 'path', 'description', 'is_installed', 'exe_pkg', 'zip_pkg', 'download_url']
   const sets: string[] = []
   const values: any[] = []
   for (const [key, value] of Object.entries(updates)) {

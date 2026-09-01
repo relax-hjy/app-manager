@@ -9,6 +9,7 @@ export interface AppInfo {
   is_installed: boolean
   exe_pkg: string
   zip_pkg: string
+  download_url: string
   category: string
 }
 

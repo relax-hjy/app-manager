@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
-import { Check, FileDown, FolderArchive, FolderOpen, Trash2, Briefcase, Code2, Wrench, Ellipsis, Grid3X3, Layers, X, Plus } from 'lucide-react'
+import { Check, FileDown, FolderArchive, FolderOpen, Trash2, Briefcase, Code2, Wrench, Ellipsis, Grid3X3, Layers, X, Plus, ExternalLink } from 'lucide-react'
 
 const ALL_CAT = '__all__'
 
@@ -39,7 +39,7 @@ export default function PkgsPage() {
   const [apps, setApps] = useState<AppInfo[]>([])
   const [selectedApp, setSelectedApp] = useState<AppInfo | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [pkgType, setPkgType] = useState<'exe_pkg' | 'zip_pkg'>('exe_pkg')
+  const [pkgType, setPkgType] = useState<'exe_pkg' | 'zip_pkg' | 'download_url'>('exe_pkg')
   const { toast } = useToast()
 
   const loadCategories = useCallback(async () => {
@@ -73,12 +73,14 @@ export default function PkgsPage() {
     loadCategories()
   }
 
-  async function handleSavePkg(type: 'exe_pkg' | 'zip_pkg', value: string) {
+  async function handleSavePkg(type: 'exe_pkg' | 'zip_pkg' | 'download_url', value: string) {
     if (!selectedApp) return
-    const otherType = type === 'exe_pkg' ? 'zip_pkg' : 'exe_pkg'
     const updates: Record<string, string> = { [type]: value }
-    // EXE 和 ZIP 二选一：设置一个时清除另一个
-    if (value) updates[otherType] = ''
+    // EXE 和 ZIP 二选一：设置一个时清除另一个（download_url 不参与互斥）
+    if (type === 'exe_pkg' || type === 'zip_pkg') {
+      const otherType = type === 'exe_pkg' ? 'zip_pkg' : 'exe_pkg'
+      if (value) updates[otherType] = ''
+    }
     await api.updateApp(selectedApp.id, updates)
     setShowForm(false)
     loadApps(selectedCat)
@@ -242,6 +244,15 @@ export default function PkgsPage() {
                       设置ZIP
                     </button>
                     <div className="flex-1" />
+                    {app.download_url && (
+                      <button
+                        onClick={e => { e.stopPropagation(); window.open(app.download_url, '_blank') }}
+                        className="text-[#646a73] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none"
+                        style={{ fontSize: 13 }}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 inline mr-0.5" />下载
+                      </button>
+                    )}
                     {(app.exe_pkg || app.zip_pkg) && (
                       <button
                         onClick={e => { e.stopPropagation(); handleLaunchPkg(app) }}
@@ -317,6 +328,24 @@ export default function PkgsPage() {
             )}
           </div>
 
+          {/* Download URL */}
+          <div className="rounded-lg bg-secondary/50 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium flex items-center gap-1.5"><ExternalLink className="h-4 w-4" /> 下载地址</span>
+              <Button size="sm" variant="ghost" onClick={() => { setPkgType('download_url'); setShowForm(true) }}>
+                {selectedApp.download_url ? '更换' : '设置'}
+              </Button>
+            </div>
+            {selectedApp.download_url ? (
+              <a href={selectedApp.download_url} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-blue-600 hover:underline break-all leading-relaxed">
+                {selectedApp.download_url}
+              </a>
+            ) : (
+              <p className="text-xs text-muted-foreground/60 italic">未添加</p>
+            )}
+          </div>
+
           <button
             onClick={() => handleToggleInstall(selectedApp)}
             className="w-full py-2 rounded-lg font-medium text-sm transition-colors select-none"
@@ -342,7 +371,7 @@ export default function PkgsPage() {
       <Dialog open={showForm} onOpenChange={(open) => { if (!open) setShowForm(false) }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{pkgType === 'exe_pkg' ? '设置 EXE 安装包' : '设置 ZIP 压缩包'}</DialogTitle>
+            <DialogTitle>{pkgType === 'exe_pkg' ? '设置 EXE 安装包' : pkgType === 'zip_pkg' ? '设置 ZIP 压缩包' : '设置下载地址'}</DialogTitle>
           </DialogHeader>
           <PkgForm
             type={pkgType}
@@ -358,7 +387,7 @@ export default function PkgsPage() {
 }
 
 function PkgForm({ type, currentValue, appName, onClose, onSave }: {
-  type: 'exe_pkg' | 'zip_pkg'; currentValue: string; appName: string
+  type: 'exe_pkg' | 'zip_pkg' | 'download_url'; currentValue: string; appName: string
   onClose: () => void; onSave: (value: string) => void
 }) {
   const [value, setValue] = useState(currentValue)
@@ -384,6 +413,17 @@ function PkgForm({ type, currentValue, appName, onClose, onSave }: {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    // 下载地址：直接保存 URL
+    if (isDownloadUrl) {
+      const url = value.trim()
+      if (!url) {
+        setError('请输入下载地址')
+        return
+      }
+      onSave(url)
+      return
+    }
 
     // 优先使用浏览选择的文件进行上传
     if (selectedFile) {
@@ -424,6 +464,7 @@ function PkgForm({ type, currentValue, appName, onClose, onSave }: {
     }
   }
 
+  const isDownloadUrl = type === 'download_url'
   const accept = type === 'exe_pkg' ? '.exe' : '.zip'
 
   return (
@@ -436,21 +477,32 @@ function PkgForm({ type, currentValue, appName, onClose, onSave }: {
         onChange={handleFileChange}
       />
       <p className="text-sm text-muted-foreground">
-        为 <strong>{appName}</strong> 设置 {type === 'exe_pkg' ? 'EXE' : 'ZIP'} 安装包
+        为 <strong>{appName}</strong> 设置 {isDownloadUrl ? '下载地址' : type === 'exe_pkg' ? 'EXE 安装包' : 'ZIP 安装包'}
       </p>
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium">{type === 'exe_pkg' ? 'EXE 安装包' : 'ZIP 压缩包'}</label>
-        <div className="flex gap-2">
-          <Input value={value} onChange={e => { setValue(e.target.value); setSelectedFile(null); setError('') }} className="flex-1"
-            placeholder={type === 'exe_pkg' ? '选择 .exe 文件或粘贴完整路径' : '选择 .zip 文件或粘贴完整路径'} />
-          <Button type="button" variant="outline" size="icon" onClick={handleBrowse} title="浏览并上传文件">
-            <FolderOpen className="h-4 w-4" />
-          </Button>
+      {isDownloadUrl ? (
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">下载地址</label>
+          <Input value={value} onChange={e => { setValue(e.target.value); setError('') }}
+            placeholder="https://example.com/download/app-setup.exe" />
+          <p className="text-xs text-muted-foreground">
+            填写安装包的下载链接（HTTP/HTTPS）
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground">
-          点击浏览按钮选择文件将直接上传；也可手动粘贴完整路径（如 <code>D:\Downloads\setup.exe</code>）
-        </p>
-      </div>
+      ) : (
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">{type === 'exe_pkg' ? 'EXE 安装包' : 'ZIP 压缩包'}</label>
+          <div className="flex gap-2">
+            <Input value={value} onChange={e => { setValue(e.target.value); setSelectedFile(null); setError('') }} className="flex-1"
+              placeholder={type === 'exe_pkg' ? '选择 .exe 文件或粘贴完整路径' : '选择 .zip 文件或粘贴完整路径'} />
+            <Button type="button" variant="outline" size="icon" onClick={handleBrowse} title="浏览并上传文件">
+              <FolderOpen className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            点击浏览按钮选择文件将直接上传；也可手动粘贴完整路径（如 <code>D:\Downloads\setup.exe</code>）
+          </p>
+        </div>
+      )}
       {error && (
         <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
       )}
@@ -460,7 +512,7 @@ function PkgForm({ type, currentValue, appName, onClose, onSave }: {
       </div>
       {currentValue && (
         <Button type="button" variant="destructive" className="w-full" onClick={() => onSave('')}>
-          <Trash2 className="h-4 w-4" /> 移除安装包
+          <Trash2 className="h-4 w-4" /> {isDownloadUrl ? '移除下载地址' : '移除安装包'}
         </Button>
       )}
     </form>

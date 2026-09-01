@@ -61,6 +61,8 @@ npm run dev        # http://localhost:5173
 
 前端通过 Vite proxy 将 `/api` 请求转发到后端，无需额外配置。
 
+> 修改后端代码后需重启后端进程（Ctrl+C 再 `npm run dev`）。
+
 ### 生产模式
 
 ```bash
