@@ -11,6 +11,7 @@ export interface AppInfo {
   zip_pkg: string
   download_url: string
   category: string
+  sort_order: number
 }
 
 export interface AppCategory {
@@ -36,6 +37,7 @@ export interface AppConfig {
   base_directory: string
   install_directory: string
   doc_directory: string
+  anthropic_api_key: string
 }
 
 // ===== API 响应格式 =====

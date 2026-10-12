@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { CheckCircle, FolderOpen } from 'lucide-react'
 
 export default function SettingsPage() {
-  const [config, setConfig] = useState<AppConfig>({ base_directory: '', install_directory: '', doc_directory: '' })
+  const [config, setConfig] = useState<AppConfig>({ base_directory: '', install_directory: '', doc_directory: '', anthropic_api_key: '' })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -111,6 +111,17 @@ export default function SettingsPage() {
                   打开
                 </Button>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Claude API Key</label>
+              <p className="text-xs text-muted-foreground">自动安装智能体 LLM 决策所用密钥（环境变量 ANTHROPIC_API_KEY 优先；留空则用规则模式）</p>
+              <Input
+                type="password"
+                value={config.anthropic_api_key}
+                onChange={e => setConfig({ ...config, anthropic_api_key: e.target.value })}
+                placeholder="sk-ant-..."
+              />
             </div>
 
             <div className="flex items-center gap-4">

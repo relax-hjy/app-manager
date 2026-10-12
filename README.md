@@ -48,20 +48,18 @@ app-manager/
 ### 开发模式
 
 ```bash
-# 1. 后端
-cd backend
-npm install
-npm run dev        # http://localhost:3001
+# 1. 首次安装依赖
+npm run install:all
 
-# 2. 前端（新终端）
-cd frontend
-npm install
-npm run dev        # http://localhost:5173
+# 2. 一键启动前后端（自动预检端口占用）
+npm run dev        # 前端 http://localhost:5173，后端 http://localhost:3001
 ```
 
-前端通过 Vite proxy 将 `/api` 请求转发到后端，无需额外配置。
+- 启动前自动预检依赖与端口（3001/5173）；被占用时打印占用进程 PID 与 `taskkill` 补救命令后退出，**不会自动杀进程**
+- 前后端均为热重载（Vite HMR / tsx watch），改代码无需重启
+- 也可分开启动：`npm run dev:backend`、`npm run dev:frontend`
 
-> 修改后端代码后需重启后端进程（Ctrl+C 再 `npm run dev`）。
+前端通过 Vite proxy 将 `/api` 请求转发到后端，无需额外配置。
 
 ### 生产模式
 
@@ -82,7 +80,7 @@ set NODE_ENV=production && npm start
 
 ## 打包与分发（待实现）
 
-当前开发模式需要分别启动前后端两个进程，以下是几种可选的打包方案：
+当前开发模式已支持一键启动（`npm run dev`），以下是几种可选的打包方案：
 
 | 方式 | 产物 | 特点 |
 |------|------|------|

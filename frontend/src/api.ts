@@ -1,4 +1,4 @@
-import type { AppInfo, AppCategory, DocInfo, AppConfig, ApiResponse } from './types'
+import type { AppInfo, AppCategory, DocInfo, AppConfig, ApiResponse, FindTask, FindStatus } from './types'
 
 const BASE = '/api'
 
@@ -35,7 +35,7 @@ export function getAppsByCategory(name: string) {
 }
 
 export function addApp(data: Partial<AppInfo> & { name: string; category: string }) {
-  return request<AppInfo>('/apps/apps', {
+  return request<AppInfo & { findStarted?: boolean }>('/apps/apps', {
     method: 'POST', body: JSON.stringify(data),
   })
 }
@@ -47,6 +47,13 @@ export function deleteApp(id: string) {
 export function updateApp(id: string, data: Partial<AppInfo>) {
   return request(`/apps/apps/${id}`, {
     method: 'PATCH', body: JSON.stringify(data),
+  })
+}
+
+/** 批量保存拖拽排序：ids 为可见卡片的新顺序（可为全部应用的子集） */
+export function reorderApps(ids: string[]) {
+  return request<{ id: string; sort_order: number }[]>('/apps/apps/reorder', {
+    method: 'PATCH', body: JSON.stringify({ ids }),
   })
 }
 
@@ -147,6 +154,48 @@ export function uploadPkg(file: File, appName: string) {
     if (!res.ok) return res.json().then(err => { throw new Error((err as any).message || 'Upload failed') })
     return res.json()
   }) as Promise<ApiResponse<{ path: string }>>
+}
+
+// 自动安装智能体
+export function startInstall(appIds?: string[]) {
+  return request<{ jobId: string }>('/agent/install', {
+    method: 'POST', body: JSON.stringify(appIds ? { appIds } : {}),
+  })
+}
+
+export function getAgentStatus() {
+  return request<import('./types').AgentStatus>('/agent/status')
+}
+
+export function cancelInstall() {
+  return request('/agent/cancel', { method: 'POST' })
+}
+
+// 下载链接查找
+/** 启动手动查找下载链接（fire-and-forget，完成后任务带 3 个候选） */
+export function startFindDownloadUrl(appId: string) {
+  return request<{ task: FindTask }>('/agent/find-download', {
+    method: 'POST', body: JSON.stringify({ appId }),
+  })
+}
+
+/** 查询全部查找任务状态（前端轮询） */
+export function getFindStatus() {
+  return request<FindStatus>('/agent/find-status')
+}
+
+/** 将点选的候选链接写入 download_url（总是覆盖） */
+export function applyFindCandidate(appId: string, url: string) {
+  return request('/agent/find-apply', {
+    method: 'POST', body: JSON.stringify({ appId, url }),
+  })
+}
+
+/** 请求取消查找任务（幂等） */
+export function cancelFindDownloadUrl(appId: string) {
+  return request('/agent/find-cancel', {
+    method: 'POST', body: JSON.stringify({ appId }),
+  })
 }
 
 // 配置

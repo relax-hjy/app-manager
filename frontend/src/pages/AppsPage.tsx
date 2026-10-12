@@ -5,6 +5,7 @@ import { useToast } from '../components/ui/toast'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Textarea } from '../components/ui/textarea'
+import SortableAppGrid from '../components/SortableAppGrid'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from '../components/ui/select'
@@ -57,6 +58,7 @@ export default function AppsPage() {
       if (res.success && res.data) {
         const all: AppInfo[] = []
         res.data.forEach(c => all.push(...c.apps))
+        all.sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
         setApps(all)
       }
     } else if (cat) {
@@ -69,6 +71,19 @@ export default function AppsPage() {
 
   useEffect(() => { loadCategories() }, [])
   useEffect(() => { loadApps(selectedCat) }, [selectedCat, loadApps])
+
+  /** 拖拽排序：乐观更新本地顺序，失败回滚并提示 */
+  const handleReorder = useCallback(async (newOrder: AppInfo[]) => {
+    const prev = apps
+    setApps(newOrder)
+    try {
+      const res = await api.reorderApps(newOrder.map(a => a.id))
+      if (!res.success) throw new Error(res.message)
+    } catch {
+      setApps(prev)
+      toast('排序保存失败', 'error')
+    }
+  }, [apps, toast])
 
   async function handleDeleteApp(id: string) {
     await api.deleteApp(id)
@@ -104,7 +119,7 @@ export default function AppsPage() {
         data.category = selectedCat
         const res = await api.addApp(data)
         if (!res.success) { toast(res.message || '添加失败', 'error'); return }
-        toast('添加成功')
+        toast(res.data?.findStarted ? '添加成功，正在后台查找下载链接' : '添加成功')
       }
       setShowForm(false)
       setEditingApp(null)
@@ -129,9 +144,18 @@ export default function AppsPage() {
   }
 
   return (
-    <div className="flex gap-4 h-full">
+    <div
+      className="flex h-full"
+      style={{
+        containerType: 'inline-size',
+        gap: '1cqw',
+        '--side-w': '14cqw',
+        '--card-track': '20cqw',
+        '--card-gap': '1cqw',
+      } as React.CSSProperties}
+    >
       {/* Sidebar */}
-      <aside className="w-[220px] flex flex-col rounded-xl border bg-card px-2 shadow-sm pb-3">
+      <aside className="flex-none flex flex-col rounded-xl border bg-card px-2 shadow-sm pb-3" style={{ width: 'var(--side-w)' }}>
         <div className="flex items-center justify-between px-2 pt-4 pb-3">
           <span className="text-base font-semibold">工具类目</span>
           <Button size="icon" variant="ghost" onClick={handleAddCat}>
@@ -180,7 +204,7 @@ export default function AppsPage() {
 
       {/* Main content */}
       <section className="flex-1 flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 pt-4 pb-3">
+        <div className="flex items-center justify-between px-[1cqw] pt-4 pb-3">
           <h2 className="text-base font-semibold leading-none m-0">
             {selectedCat === ALL_CAT ? '全部工具' : (selectedCat || '选择类目')}
           </h2>
@@ -189,19 +213,20 @@ export default function AppsPage() {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-auto px-4 pb-4">
+        {/* scrollbar-gutter: stable —— 纵向滚动条常驻占位，出现时不挤占卡片宽度导致横向滚动 */}
+        <div className="flex-1 min-w-0 overflow-auto px-[1cqw] pb-4" style={{ scrollbarGutter: 'stable' }}>
           {apps.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <div className="text-5xl mb-3">📋</div>
               <p className="text-sm">暂无应用，点击上方按钮添加</p>
             </div>
           ) : (
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-              {apps.map(app => (
+            <SortableAppGrid apps={apps} onReorder={handleReorder} disabled={showForm}
+              cols={selectedApp ? 3 : 4}
+              renderItem={app => (
                 <div
-                  key={app.id}
                   onClick={() => setSelectedApp(app)}
-                  className={`rounded-xl border bg-white cursor-pointer transition-all hover:shadow-md flex flex-col
+                  className={`rounded-xl border bg-white cursor-pointer transition-[border-color,box-shadow] hover:shadow-md flex flex-col
                     ${selectedApp?.id === app.id ? 'border-[1a1a1a]/40 ring-1 ring-[1a1a1a]/20' : 'border-[#e5e6e8] hover:border-[#c5c7cc]'}`}
                 >
                   {/* Header */}
@@ -271,15 +296,17 @@ export default function AppsPage() {
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            />
           )}
         </div>
       </section>
 
       {/* Detail Panel */}
       {selectedApp && (
-        <aside className="w-72 rounded-xl border bg-card p-5 shadow-sm overflow-auto space-y-4 shrink-0">
+        <aside className="flex-none flex flex-col rounded-xl border bg-card shadow-sm shrink-0" style={{ width: 'var(--card-track)' }}>
+          {/* 可滚动内容区 */}
+          <div className="flex-1 min-h-0 overflow-auto p-5 space-y-4">
           <div className="flex items-center gap-3">
             <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${selectedApp.path && selectedApp.is_installed ? 'bg-white' : `${catColor(selectedApp.category).bg} text-white`}`}>
               {selectedApp.path && selectedApp.is_installed ? (
@@ -316,6 +343,13 @@ export default function AppsPage() {
             >
               {selectedApp.is_installed ? '已安装' : '未安装'}
             </span>
+            <button
+              onClick={() => setSelectedApp(null)}
+              className="shrink-0 rounded p-1 text-[#646a73] hover:bg-[#f2f3f5] hover:text-[#1a1a1a] transition-colors"
+              title="关闭详情"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
           <div className="space-y-3 text-sm">
@@ -325,7 +359,10 @@ export default function AppsPage() {
             <Field label="ZIP 包" value={selectedApp.zip_pkg || '—'} mono />
           </div>
 
-          <div className="space-y-2 pt-1">
+          </div>
+
+          {/* 固定底部操作区 */}
+          <div className="shrink-0 border-t border-[#f0f0f0] p-5 pt-3 space-y-2">
             {selectedApp.path && selectedApp.is_installed && (
               <Button size="sm" className="w-full bg-[#1a1a1a] hover:bg-[#333] text-white" onClick={() => handleLaunch(selectedApp.path!)}>
                 <Play className="h-3.5 w-3.5" /> 启动应用

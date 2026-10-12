@@ -50,6 +50,7 @@ function initTables() {
       is_installed INTEGER NOT NULL DEFAULT 0,
       exe_pkg TEXT NOT NULL DEFAULT '',
       zip_pkg TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
       category_id INTEGER NOT NULL,
       FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
     );
@@ -82,6 +83,9 @@ function initTables() {
 
   try { db.exec(`ALTER TABLE documents ADD COLUMN description TEXT NOT NULL DEFAULT ''`) } catch {}
   try { db.exec(`ALTER TABLE apps ADD COLUMN download_url TEXT NOT NULL DEFAULT ''`) } catch {}
+  try { db.exec(`ALTER TABLE apps ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`) } catch {}
+  // 仅回填遗留行（sort_order = 0），rowid 保持插入顺序且唯一；之后为 no-op，用户排序不被覆盖
+  try { db.exec(`UPDATE apps SET sort_order = rowid WHERE sort_order = 0`) } catch {}
 }
 
 export function queryAll(db: SqlJsDatabase, sql: string, params: any[] = []): Record<string, any>[] {

@@ -1,6 +1,21 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { cn } from '../lib/utils'
-import { Boxes, FileText, Package, Settings, Wrench } from 'lucide-react'
+import { Boxes, FileText, Package, Settings } from 'lucide-react'
+
+/** 菱形 Logo：白色菱形（圆角尖端），双轴对称，小尺寸下锐利 */
+function DiamondLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-hidden>
+      <path
+        d="M16 7L25 16L16 25L7 16Z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
 
 const navItems = [
   { to: '/apps', label: '应用管理', icon: Boxes },
@@ -15,9 +30,9 @@ export default function Layout() {
       <header className="flex items-center h-12 bg-card border-b shrink-0 px-5 gap-1">
         <div className="flex items-center gap-2.5 mr-6">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-            <Wrench className="h-3.5 w-3.5 text-primary-foreground" />
+            <DiamondLogo className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
-          <span className="font-bold text-sm">Softwares Manager</span>
+          <span className="font-bold text-sm">App Manager</span>
         </div>
 
         <div className="flex-1" />
