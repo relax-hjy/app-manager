@@ -148,7 +148,7 @@ export default function InstallAgentCard({ apps, onFinished }: { apps: AppInfo[]
           <button
             onClick={handleStart}
             disabled={pending.length === 0 || starting}
-            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[#1a1a1a] py-1.5 text-xs font-medium text-white hover:bg-[#333] transition-colors disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-[#1a1a1a] py-1.5 text-xs font-medium text-white hover:bg-[#333] transition-colors disabled:opacity-40"
           >
             {starting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
             一键安装

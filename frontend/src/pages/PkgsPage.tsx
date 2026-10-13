@@ -221,7 +221,7 @@ export default function PkgsPage() {
       style={{
         containerType: 'inline-size',
         gap: '1cqw',
-        '--side-w': '14cqw',
+        '--side-w': 'max(14cqw, 148px)',
         '--card-track': '20cqw',
         '--card-gap': '1cqw',
       } as React.CSSProperties}
@@ -350,17 +350,17 @@ export default function PkgsPage() {
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center gap-1 px-4 py-2.5 mt-1 border-t border-[#f0f0f0]">
+                  <div className="flex flex-wrap items-center gap-1 px-4 py-2.5 mt-1 border-t border-[#f0f0f0]">
                     <button
                       onClick={e => { e.stopPropagation(); setPkgType('exe_pkg'); setSelectedApp(app); setShowForm(true) }}
-                      className="text-[#646a73] hover:text-[1a1a1a] hover:bg-[#f2f3f5] rounded px-2.5 py-1 transition-colors select-none"
+                      className="whitespace-nowrap text-[#646a73] hover:text-[1a1a1a] hover:bg-[#f2f3f5] rounded px-2.5 py-1 transition-colors select-none"
                       style={{ fontSize: 13 }}
                     >
                       设置EXE
                     </button>
                     <button
                       onClick={e => { e.stopPropagation(); setPkgType('zip_pkg'); setSelectedApp(app); setShowForm(true) }}
-                      className="text-[#646a73] hover:text-[1a1a1a] hover:bg-[#f2f3f5] rounded px-2.5 py-1 transition-colors select-none"
+                      className="whitespace-nowrap text-[#646a73] hover:text-[1a1a1a] hover:bg-[#f2f3f5] rounded px-2.5 py-1 transition-colors select-none"
                       style={{ fontSize: 13 }}
                     >
                       设置ZIP
@@ -369,7 +369,7 @@ export default function PkgsPage() {
                     {app.download_url && (
                       <button
                         onClick={e => { e.stopPropagation(); window.open(app.download_url, '_blank') }}
-                        className="text-[#646a73] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none"
+                        className="whitespace-nowrap text-[#646a73] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none"
                         style={{ fontSize: 13 }}
                       >
                         <ExternalLink className="h-3.5 w-3.5 inline mr-0.5" />下载
@@ -378,7 +378,7 @@ export default function PkgsPage() {
                     {(app.exe_pkg || app.zip_pkg) && (
                       <button
                         onClick={e => { e.stopPropagation(); handleLaunchPkg(app) }}
-                        className="text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none font-medium"
+                        className="whitespace-nowrap text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none font-medium"
                         style={{ fontSize: 13 }}
                       >
                         安装
@@ -394,7 +394,7 @@ export default function PkgsPage() {
 
       {/* Detail Panel */}
       {selectedApp && (
-        <aside className="flex-none flex flex-col rounded-xl border bg-card shadow-sm shrink-0" style={{ width: 'var(--card-track)' }}>
+        <aside className="flex-none flex flex-col rounded-xl border bg-card shadow-sm shrink-0" style={{ width: 'var(--card-track)', minWidth: 280 }}>
           {/* 可滚动内容区 */}
           <div className="flex-1 min-h-0 overflow-auto p-5 space-y-4">
           <div className="flex items-center gap-3">
@@ -444,9 +444,9 @@ export default function PkgsPage() {
 
           {/* EXE */}
           <div className="rounded-lg bg-secondary/50 p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium flex items-center gap-1.5"><FileDown className="h-4 w-4" /> EXE 安装包</span>
-              <Button size="sm" variant="ghost" onClick={() => { setPkgType('exe_pkg'); setShowForm(true) }}>
+            <div className="flex items-center justify-between gap-1.5 flex-wrap">
+              <span className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"><FileDown className="h-4 w-4" /> EXE 安装包</span>
+              <Button size="sm" variant="ghost" className="ml-auto shrink-0" onClick={() => { setPkgType('exe_pkg'); setShowForm(true) }}>
                 {selectedApp.exe_pkg ? '更换' : '设置'}
               </Button>
             </div>
@@ -459,9 +459,9 @@ export default function PkgsPage() {
 
           {/* ZIP */}
           <div className="rounded-lg bg-secondary/50 p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium flex items-center gap-1.5"><FolderArchive className="h-4 w-4" /> ZIP 压缩包</span>
-              <Button size="sm" variant="ghost" onClick={() => { setPkgType('zip_pkg'); setShowForm(true) }}>
+            <div className="flex items-center justify-between gap-1.5 flex-wrap">
+              <span className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"><FolderArchive className="h-4 w-4" /> ZIP 压缩包</span>
+              <Button size="sm" variant="ghost" className="ml-auto shrink-0" onClick={() => { setPkgType('zip_pkg'); setShowForm(true) }}>
                 {selectedApp.zip_pkg ? '更换' : '设置'}
               </Button>
             </div>
@@ -474,12 +474,12 @@ export default function PkgsPage() {
 
           {/* Download URL */}
           <div className="rounded-lg bg-secondary/50 p-3 space-y-2">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-sm font-medium flex items-center gap-1.5"><ExternalLink className="h-4 w-4" /> 下载地址</span>
+            <div className="flex items-center justify-between gap-1.5 flex-wrap">
+              <span className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"><ExternalLink className="h-4 w-4" /> 下载地址</span>
               {findStatus && !findStatus.llmAvailable ? (
-                <span className="text-xs text-muted-foreground/80">规则模式（未配置 API Key）</span>
+                <span className="text-xs text-muted-foreground/80 whitespace-nowrap">规则模式（未配置 API Key）</span>
               ) : (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0 ml-auto">
                   {isFinding && (
                     <Button size="sm" variant="ghost" onClick={handleCancelFind}>取消</Button>
                   )}
@@ -489,7 +489,7 @@ export default function PkgsPage() {
                       {isFinding ? '查找中…' : selectedApp.download_url ? '重新查找' : 'AI 找链接'}
                     </Button>
                     {showFindMenu && (
-                      <div className="absolute right-0 top-full z-10 mt-1 w-64 rounded-lg border border-[#e5e6e8] bg-white p-1 shadow-lg">
+                      <div className="absolute right-0 top-full z-10 mt-1 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-[#e5e6e8] bg-white p-1 shadow-lg">
                         {isFinding ? (
                           <div className="flex items-center gap-2 px-3 py-2 text-xs text-[#646a73]">
                             <Loader2 className="h-3.5 w-3.5 animate-spin" /> 正在联网查找，请稍候…
@@ -503,7 +503,7 @@ export default function PkgsPage() {
                             >
                               <div className="flex items-center gap-1.5">
                                 <span className="shrink-0 font-medium text-[#646a73]" style={{ fontSize: 12 }}>#{i + 1}</span>
-                                <span className="flex-1 truncate text-xs text-blue-600">{c.url}</span>
+                                <span className="flex-1 min-w-0 truncate text-xs text-blue-600">{c.url}</span>
                                 {c.isDirect && (
                                   <span className="shrink-0 rounded border border-[#e5e6e8] px-1 py-px" style={{ fontSize: 11, color: '#16a34a' }}>直链</span>
                                 )}

@@ -149,7 +149,7 @@ export default function AppsPage() {
       style={{
         containerType: 'inline-size',
         gap: '1cqw',
-        '--side-w': '14cqw',
+        '--side-w': 'max(14cqw, 148px)',
         '--card-track': '20cqw',
         '--card-gap': '1cqw',
       } as React.CSSProperties}
@@ -276,10 +276,10 @@ export default function AppsPage() {
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center gap-1 px-4 py-2.5 mt-1 border-t border-[#f0f0f0]">
+                  <div className="flex flex-wrap items-center gap-1 px-4 py-2.5 mt-1 border-t border-[#f0f0f0]">
                     <button
                       onClick={e => { e.stopPropagation(); setEditingApp(app); setShowForm(true) }}
-                      className="text-[#646a73] hover:text-[1a1a1a] hover:bg-[#f2f3f5] rounded px-2.5 py-1 transition-colors select-none"
+                      className="whitespace-nowrap text-[#646a73] hover:text-[1a1a1a] hover:bg-[#f2f3f5] rounded px-2.5 py-1 transition-colors select-none"
                       style={{ fontSize: 13 }}
                     >
                       编辑
@@ -288,7 +288,7 @@ export default function AppsPage() {
                     {app.path && app.is_installed && (
                       <button
                         onClick={e => { e.stopPropagation(); handleLaunch(app.path!) }}
-                        className="text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none font-medium"
+                        className="whitespace-nowrap text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none font-medium"
                         style={{ fontSize: 13 }}
                       >
                         启动
@@ -304,7 +304,7 @@ export default function AppsPage() {
 
       {/* Detail Panel */}
       {selectedApp && (
-        <aside className="flex-none flex flex-col rounded-xl border bg-card shadow-sm shrink-0" style={{ width: 'var(--card-track)' }}>
+        <aside className="flex-none flex flex-col rounded-xl border bg-card shadow-sm shrink-0" style={{ width: 'var(--card-track)', minWidth: 280 }}>
           {/* 可滚动内容区 */}
           <div className="flex-1 min-h-0 overflow-auto p-5 space-y-4">
           <div className="flex items-center gap-3">
