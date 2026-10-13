@@ -9,7 +9,7 @@ import SortableAppGrid from '../components/SortableAppGrid'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from '../components/ui/select'
-import { Plus, Trash2, Edit2, X, Play, Briefcase, Code2, Wrench, Ellipsis, Grid3X3, Layers } from 'lucide-react'
+import { Plus, Trash2, Edit2, X, Play, Briefcase, Code2, Wrench, Ellipsis, Grid3X3, Layers, FolderOpen } from 'lucide-react'
 
 const ALL_CAT = '__all__'
 
@@ -431,6 +431,8 @@ function AppForm({ app, category, categories, onClose, onSubmit }: {
   const [path, setPath] = useState(app?.path || '')
   const [description, setDescription] = useState(app?.description || '')
   const [installDir, setInstallDir] = useState('')
+  const [picking, setPicking] = useState(false)
+  const [pickError, setPickError] = useState('')
 
   useEffect(() => {
     api.getConfig().then(res => {
@@ -452,6 +454,20 @@ function AppForm({ app, category, categories, onClose, onSubmit }: {
     e.preventDefault()
     if (!name.trim() || !selectedCat) return
     onSubmit({ name: name.trim(), version: version.trim(), path: path.trim(), description: description.trim(), category: selectedCat })
+  }
+
+  /** 打开 Windows 原生文件选择窗，选中后回填路径（取消则不改动） */
+  async function handleBrowse() {
+    setPickError('')
+    setPicking(true)
+    try {
+      const res = await api.pickFile(path.trim())
+      if (res.success && res.data?.path) setPath(res.data.path)
+    } catch (e) {
+      setPickError(e instanceof Error ? e.message : '打开文件选择窗失败')
+    } finally {
+      setPicking(false)
+    }
   }
 
   return (
@@ -477,13 +493,24 @@ function AppForm({ app, category, categories, onClose, onSubmit }: {
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-medium">路径</label>
-        <Input value={path} onChange={e => setPath(e.target.value)} placeholder="可执行文件路径" />
+        <div className="flex gap-2">
+          <Input value={path} onChange={e => { setPath(e.target.value); setPickError('') }} placeholder="选择 .exe 文件或粘贴完整路径" className="flex-1" />
+          <Button type="button" variant="outline" size="icon" onClick={handleBrowse} disabled={picking} title="浏览选择文件">
+            <FolderOpen className="h-4 w-4" />
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          点击浏览按钮选择文件；也可手动粘贴完整路径（如 <code>D:\Softwares\VSCode\Code.exe</code>）
+        </p>
+        {pickError && (
+          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{pickError}</p>
+        )}
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-medium">描述</label>
         <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="应用功能简介" rows={3} />
       </div>
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex justify-end gap-2 pt-6">
         <Button type="button" variant="outline" onClick={onClose}>取消</Button>
         <Button type="submit">保存</Button>
       </div>

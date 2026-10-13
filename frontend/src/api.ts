@@ -137,6 +137,13 @@ export function checkPathExists(filePath: string) {
   })
 }
 
+/** 打开 Windows 原生文件选择窗，返回选中文件的完整路径（取消时为空串） */
+export function pickFile(currentPath?: string) {
+  return request<{ path: string }>('/native/pick-file', {
+    method: 'POST', body: JSON.stringify({ currentPath: currentPath || '' }),
+  })
+}
+
 export function copyPkg(sourcePath: string, appName: string) {
   return request<{ path: string }>('/native/copy-pkg', {
     method: 'POST', body: JSON.stringify({ sourcePath, appName }),
