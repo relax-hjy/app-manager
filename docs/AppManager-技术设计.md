@@ -106,6 +106,7 @@ SQLite (backend/data/app-manager.db)  +  本地磁盘（安装包、文档、图
 | POST | /api/native/open-file | 用默认程序打开文件 |
 | POST | /api/native/open-folder | 在资源管理器打开目录 |
 | POST | /api/native/check-path | 检查路径是否存在 |
+| POST | /api/native/pick-file | 打开 Windows 原生文件选择窗（{currentPath?} 定位初始目录；返回完整路径，取消为空串） |
 | POST | /api/native/copy-pkg | 复制安装包到管理目录 |
 | POST | /api/native/upload-pkg | 上传安装包（multer） |
 | POST | /api/native/scan-docs | 扫描文档目录（新增/失效） |
@@ -135,6 +136,7 @@ SQLite (backend/data/app-manager.db)  +  本地磁盘（安装包、文档、图
 
 ## 第三方集成
 - PowerShell `ExtractAssociatedIcon`：从 EXE 提取图标
+- PowerShell WinForms `OpenFileDialog`：原生文件选择窗（pick-file；BOM 脚本防中文乱码 + Base64 回传避开控制台编码，Per-Monitor V2 DPI 感知 + 隐形居中 owner）
 - Windows shell `start` / `explorer`：启动应用、打开文件/目录
 - 无外部云服务依赖
 
