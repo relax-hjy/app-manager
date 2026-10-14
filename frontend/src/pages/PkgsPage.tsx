@@ -8,6 +8,7 @@ import SortableAppGrid from '../components/SortableAppGrid'
 import InstallAgentCard from '../components/InstallAgentCard'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover'
 import { Check, FileDown, FolderArchive, FolderOpen, Trash2, Briefcase, Code2, Wrench, Ellipsis, Grid3X3, Layers, X, Plus, ExternalLink, Search, Loader2 } from 'lucide-react'
 
 const ALL_CAT = '__all__'
@@ -104,10 +105,15 @@ export default function PkgsPage() {
     return () => window.clearInterval(timer)
   }, [hasRunningFind, refreshFindStatus])
 
-  /** 启动手动查找下载链接；完成后以候选下拉展示 */
-  async function handleStartFind() {
-    if (!selectedApp) return
-    setShowFindMenu(true)
+  /** 打开/关闭找链接弹层；打开时若无进行中任务则启动查找（重新查找语义） */
+  function handleFindOpenChange(open: boolean) {
+    setShowFindMenu(open)
+    if (open) void startFind()
+  }
+
+  /** 启动手动查找下载链接（已有进行中任务或写入中时跳过）；完成后以候选下拉展示 */
+  async function startFind() {
+    if (!selectedApp || isFinding || applying) return
     try {
       await api.startFindDownloadUrl(selectedApp.id)
       await refreshFindStatus()
@@ -483,42 +489,43 @@ export default function PkgsPage() {
                   {isFinding && (
                     <Button size="sm" variant="ghost" onClick={handleCancelFind}>取消</Button>
                   )}
-                  <div className="relative">
-                    <Button size="sm" variant="ghost" disabled={isFinding || applying} onClick={handleStartFind}>
-                      {isFinding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                      {isFinding ? '查找中…' : selectedApp.download_url ? '重新查找' : 'AI 找链接'}
-                    </Button>
-                    {showFindMenu && (
-                      <div className="absolute right-0 top-full z-10 mt-1 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-[#e5e6e8] bg-white p-1 shadow-lg">
-                        {isFinding ? (
-                          <div className="flex items-center gap-2 px-3 py-2 text-xs text-[#646a73]">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> 正在联网查找，请稍候…
-                          </div>
-                        ) : selectedFindTask?.status === 'success' && selectedFindTask.candidates?.length ? (
-                          selectedFindTask.candidates.map((c, i) => (
-                            <button
-                              key={c.url}
-                              onClick={() => handleApplyCandidate(c.url)}
-                              className="w-full rounded-md px-2.5 py-2 text-left transition-colors hover:bg-[#f2f3f5]"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <span className="shrink-0 font-medium text-[#646a73]" style={{ fontSize: 12 }}>#{i + 1}</span>
-                                <span className="flex-1 min-w-0 truncate text-xs text-blue-600">{c.url}</span>
-                                {c.isDirect && (
-                                  <span className="shrink-0 rounded border border-[#e5e6e8] px-1 py-px" style={{ fontSize: 11, color: '#16a34a' }}>直链</span>
-                                )}
-                              </div>
-                              <p className="mt-0.5 truncate text-[#646a73]" style={{ fontSize: 11 }}>{c.note}</p>
-                            </button>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 text-xs text-[#646a73]">
-                            {selectedFindTask?.message || '未找到候选链接'}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <Popover open={showFindMenu} onOpenChange={handleFindOpenChange}>
+                    <PopoverTrigger asChild>
+                      <Button size="sm" variant="ghost" disabled={applying}>
+                        {isFinding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        {isFinding ? '查找中…' : selectedApp.download_url ? '重新查找' : 'AI 找链接'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent>
+                      {isFinding ? (
+                        <div className="flex items-center gap-2 px-3 py-2 text-xs text-[#646a73]">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> 正在联网查找，请稍候…
+                        </div>
+                      ) : selectedFindTask?.status === 'success' && selectedFindTask.candidates?.length ? (
+                        selectedFindTask.candidates.map((c, i) => (
+                          <button
+                            key={c.url}
+                            onClick={() => handleApplyCandidate(c.url)}
+                            disabled={applying}
+                            className="w-full rounded-md px-2.5 py-2 text-left transition-colors hover:bg-[#f2f3f5] disabled:opacity-50"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span className="shrink-0 font-medium text-[#646a73]" style={{ fontSize: 12 }}>#{i + 1}</span>
+                              <span className="flex-1 min-w-0 truncate text-xs text-blue-600">{c.url}</span>
+                              {c.isDirect && (
+                                <span className="shrink-0 rounded border border-[#e5e6e8] px-1 py-px" style={{ fontSize: 11, color: '#16a34a' }}>直链</span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 truncate text-[#646a73]" style={{ fontSize: 11 }}>{c.note}</p>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-xs text-[#646a73]">
+                          {selectedFindTask?.message || '未找到候选链接'}
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                   <Button size="sm" variant="ghost" onClick={() => { setPkgType('download_url'); setShowForm(true) }}>
                     {selectedApp.download_url ? '更换' : '设置'}
                   </Button>
