@@ -44,6 +44,9 @@ SQLite (backend/data/app-manager.db)  +  本地磁盘（安装包、文档、图
 | zip_pkg | TEXT | ZIP 安装包路径 |
 | download_url | TEXT | 安装包下载地址 |
 | sort_order | INTEGER NOT NULL DEFAULT 0 | 全局拖拽排序键（唯一，0 表示待回填） |
+| find_candidates | TEXT | 下载链接查找结果：候选 JSON 数组（空串=无结果，失败/取消不覆盖旧结果） |
+| find_message | TEXT | 查找结果说明（如「找到 3 个候选链接」） |
+| find_finished_at | TEXT | 查找完成时间（ISO，结果持久化时间戳） |
 | category_id | INTEGER FK → categories(id) ON DELETE CASCADE | 所属分类 |
 
 ### documents
@@ -91,12 +94,16 @@ SQLite (backend/data/app-manager.db)  +  本地磁盘（安装包、文档、图
 | GET | /api/docs/by-app/:appId | 获取某应用的文档 |
 | GET | /api/docs/categories | 获取已使用的文档分类 |
 
-### agent（自动安装智能体）
+### agent（自动安装智能体 + 下载链接查找）
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | POST | /api/agent/install | 启动批量安装 `{appIds?}`（409=已有任务在跑） |
 | GET | /api/agent/status | 任务状态 + llmAvailable（前端 1s 轮询） |
 | POST | /api/agent/cancel | 取消（应用间生效 + kill 子进程） |
+| POST | /api/agent/find-download | 启动手动查找下载链接 `{appId}`（fire-and-forget，只出候选不写库） |
+| GET | /api/agent/find-status | 查找状态：`{ tasks（内存任务）, results（已持久化结果）, llmAvailable }`（前端 1s 轮询） |
+| POST | /api/agent/find-apply | 点选候选写入 download_url `{appId, url}`（总是覆盖） |
+| POST | /api/agent/find-cancel | 取消查找任务 `{appId}`（幂等） |
 
 ### native（本机操作）
 | 方法 | 路径 | 说明 |
@@ -117,6 +124,7 @@ SQLite (backend/data/app-manager.db)  +  本地磁盘（安装包、文档、图
 ## 模块依赖
 - `frontend/src/pages/*` → `frontend/src/api.ts` → 后端 routes → `database.ts` / `fs` / `child_process`
 - 自动安装智能体：`routes/agent.ts` → `agent/installer.ts`（任务编排/执行/规则表）→ `agent/llm.ts`（`@anthropic-ai/sdk` + zod 结构化输出，模型 `claude-opus-5`，带 server-side fallback）；LLM 不可用/失败降级规则表
+- 下载链接查找：`routes/agent.ts` → `agent/find-download.ts`（Bing 搜索真实结果 → `agent/llm.ts` 排序 → 可达性校验；任务态内存保留最新一个，成功结果落库 `apps.find_*` 持久化；注册后自动回填走 auto 模式只写空 download_url）
 - `shared/types.ts` 为前后端共享类型源；`frontend/src/types.ts` 为前端本地类型
 - native 图标提取依赖 PowerShell `ExtractAssociatedIcon`，缓存于 `backend/data/icons/{appId}.png`
 
@@ -131,6 +139,7 @@ SQLite (backend/data/app-manager.db)  +  本地磁盘（安装包、文档、图
 - 拖拽排序：全局 `sort_order` 一列，所有视图按它排序；拖动落点后把「可见子集」的 sort 键多重集按新视觉顺序重赋值（服务端 `reassignVisibleSortOrders`），不可见应用不受影响；类目视图与「全部工具」共用此规则
 - 删除分类级联删除应用；删除应用时文档 app_id 置 NULL
 - UI 规范：极简黑白灰（主色 `#1a1a1a`，背景 `#f5f5f5`，边框 `#e8e8e8`）；顶部导航 h-12；卡片三段式
+- 悬浮弹层（找链接候选等）：Radix Popover，Portal 渲染不嵌滚动容器（防裁剪）+ popper 定位贴触发器、视口边缘自动翻转避让 + `updatePositionStrategy="always"`（滚动/缩放实时跟随）
 - 应用/安装包页布局：三栏 flex + `container-type: inline-size`，全比例 cqw（侧栏 14cqw、列轨道 20cqw、间距 1cqw、详情面板 20cqw=一列）；卡片网格 `repeat(4|3, 20cqw)`，开详情面板 4→3 列且前三列轨道不变；面板底部操作按钮固定（上区滚动）
 - 启动/打开操作为 fire-and-forget，立即返回
 
