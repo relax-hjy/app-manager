@@ -84,6 +84,10 @@ function initTables() {
   try { db.exec(`ALTER TABLE documents ADD COLUMN description TEXT NOT NULL DEFAULT ''`) } catch {}
   try { db.exec(`ALTER TABLE apps ADD COLUMN download_url TEXT NOT NULL DEFAULT ''`) } catch {}
   try { db.exec(`ALTER TABLE apps ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`) } catch {}
+  // 查找结果持久化：候选 JSON、结果说明、完成时间（空串 = 无查找结果）
+  try { db.exec(`ALTER TABLE apps ADD COLUMN find_candidates TEXT NOT NULL DEFAULT ''`) } catch {}
+  try { db.exec(`ALTER TABLE apps ADD COLUMN find_message TEXT NOT NULL DEFAULT ''`) } catch {}
+  try { db.exec(`ALTER TABLE apps ADD COLUMN find_finished_at TEXT NOT NULL DEFAULT ''`) } catch {}
   // 仅回填遗留行（sort_order = 0），rowid 保持插入顺序且唯一；之后为 no-op，用户排序不被覆盖
   try { db.exec(`UPDATE apps SET sort_order = rowid WHERE sort_order = 0`) } catch {}
 }

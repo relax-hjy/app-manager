@@ -105,10 +105,10 @@ export default function PkgsPage() {
     return () => window.clearInterval(timer)
   }, [hasRunningFind, refreshFindStatus])
 
-  /** 打开/关闭找链接弹层；打开时若无进行中任务则启动查找（重新查找语义） */
+  /** 打开/关闭找链接弹层；打开时若无可展示的候选结果则启动查找（已有结果直接展示，不重复搜索） */
   function handleFindOpenChange(open: boolean) {
     setShowFindMenu(open)
-    if (open) void startFind()
+    if (open && !selectedFindTask?.candidates?.length) void startFind()
   }
 
   /** 启动手动查找下载链接（已有进行中任务或写入中时跳过）；完成后以候选下拉展示 */
@@ -151,11 +151,15 @@ export default function PkgsPage() {
     }
   }
 
-  // 当前选中应用的查找任务（每应用最新一个）
-  const selectedFindTask = selectedApp
+  // 当前选中应用的查找任务：运行中任务优先（进度/取消），否则已持久化结果，否则内存任务（失败提示等）
+  const memoryFindTask = selectedApp
     ? findStatus?.tasks.find(t => t.appId === selectedApp.id)
     : undefined
-  const isFinding = selectedFindTask?.status === 'running'
+  const savedFindTask = selectedApp
+    ? findStatus?.results?.find(t => t.appId === selectedApp.id)
+    : undefined
+  const selectedFindTask = memoryFindTask?.status === 'running' ? memoryFindTask : (savedFindTask ?? memoryFindTask)
+  const isFinding = memoryFindTask?.status === 'running'
 
   /** 拖拽排序：乐观更新本地顺序，失败回滚并提示 */
   const handleReorder = useCallback(async (newOrder: AppInfo[]) => {
@@ -493,7 +497,7 @@ export default function PkgsPage() {
                     <PopoverTrigger asChild>
                       <Button size="sm" variant="ghost" disabled={applying}>
                         {isFinding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                        {isFinding ? '查找中…' : selectedApp.download_url ? '重新查找' : 'AI 找链接'}
+                        {isFinding ? '查找中…' : selectedFindTask?.candidates?.length ? '查看候选' : 'AI 找链接'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent>
@@ -522,6 +526,17 @@ export default function PkgsPage() {
                       ) : (
                         <div className="px-3 py-2 text-xs text-[#646a73]">
                           {selectedFindTask?.message || '未找到候选链接'}
+                        </div>
+                      )}
+                      {!isFinding && (
+                        <div className="border-t border-[#f0f0f0] px-2 py-1.5">
+                          <button
+                            onClick={() => void startFind()}
+                            disabled={applying}
+                            className="flex w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-xs text-[#646a73] transition-colors hover:bg-[#f2f3f5] hover:text-[#1a1a1a] disabled:opacity-50"
+                          >
+                            <Search className="h-3.5 w-3.5" /> 重新查找
+                          </button>
                         </div>
                       )}
                     </PopoverContent>

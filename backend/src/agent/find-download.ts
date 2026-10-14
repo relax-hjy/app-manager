@@ -90,6 +90,49 @@ export async function applyCandidate(appId: string, url: string): Promise<boolea
 }
 
 /**
+ * 读取全部已持久化的查找结果（合成 success 任务，供前端在无运行任务时展示）。
+ * @returns 每应用最新一条成功结果（无结果的应用不返回）
+ */
+export async function getSavedFindResults(): Promise<FindTask[]> {
+  const db = await getDb()
+  const rows = queryAll(db, `SELECT id, name, find_candidates, find_message, find_finished_at FROM apps
+    WHERE find_candidates != '' AND find_candidates IS NOT NULL`)
+  const results: FindTask[] = []
+  for (const row of rows) {
+    try {
+      const candidates = JSON.parse(String(row.find_candidates)) as DownloadLinkCandidate[]
+      if (!Array.isArray(candidates) || candidates.length === 0) continue
+      results.push({
+        appId: String(row.id),
+        name: String(row.name ?? ''),
+        status: 'success',
+        step: '完成',
+        message: String(row.find_message ?? ''),
+        candidates,
+        createdAt: String(row.find_finished_at ?? ''),
+        finishedAt: String(row.find_finished_at ?? ''),
+      })
+    } catch {
+      // JSON 损坏的行跳过，不影响其他结果
+    }
+  }
+  return results
+}
+
+/**
+ * 持久化一次成功的查找结果（失败/取消/跳过不落库，保留旧结果）。
+ * @param appId 目标应用 id
+ * @param candidates 候选链接列表
+ * @param message 结果说明
+ */
+async function saveFindResult(appId: string, candidates: DownloadLinkCandidate[], message: string): Promise<void> {
+  const db = await getDb()
+  const finishedAt = new Date().toISOString()
+  execute(db, 'UPDATE apps SET find_candidates = ?, find_message = ?, find_finished_at = ? WHERE id = ?',
+    [JSON.stringify(candidates), message, finishedAt, appId])
+}
+
+/**
  * 启动下载链接查找（fire-and-forget，立即返回任务）。
  * @param appId 目标应用 id
  * @param opts auto=true 为注册后自动查找（只回填空 download_url）；false 为手动查找（只出候选不写库）
@@ -147,8 +190,11 @@ async function runFind(task: FindTask, ctx: { name: string; version: string; des
   )
   task.candidates = candidates
   const sourceNote = hits.length > 0 ? '' : '搜索不可用，凭知识推荐；'
+  const resultMessage = `${sourceNote}找到 ${candidates.length} 个候选链接`
+  // 排序完成即落库（含自动模式被跳过回填的情况），失败/取消不覆盖旧结果
+  if (candidates.length > 0) await saveFindResult(task.appId, candidates, resultMessage)
   if (!auto) {
-    finish(task, 'success', `${sourceNote}找到 ${candidates.length} 个候选链接`)
+    finish(task, 'success', resultMessage)
     return
   }
   task.step = '写入'

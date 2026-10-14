@@ -86,6 +86,8 @@ export interface FindTask {
 /** 查找任务状态轮询返回 */
 export interface FindStatus {
   tasks: FindTask[]
+  /** 已持久化的查找结果（每应用最新一条成功结果，落库、重启不丢） */
+  results: FindTask[]
   llmAvailable: boolean
 }
 

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { startInstallJob, getJob, cancelJob } from '../agent/installer'
-import { startFindTask, getFindTasks, cancelFindTask, applyCandidate } from '../agent/find-download'
+import { startFindTask, getFindTasks, cancelFindTask, applyCandidate, getSavedFindResults } from '../agent/find-download'
 import { isLlmAvailable } from '../agent/llm'
 import type { ApiResponse } from '../types'
 
@@ -63,10 +63,10 @@ router.post('/find-download', async (req: Request, res: Response) => {
   res.json({ success: true, data: { task } } as ApiResponse)
 })
 
-/** 查找任务状态（前端轮询）：{ tasks, llmAvailable } */
+/** 查找任务状态（前端轮询）：{ tasks, results（已持久化结果）, llmAvailable } */
 router.get('/find-status', async (_req: Request, res: Response) => {
   const llm = await isLlmAvailable()
-  res.json({ success: true, data: { tasks: getFindTasks(), llmAvailable: llm } } as ApiResponse)
+  res.json({ success: true, data: { tasks: getFindTasks(), results: await getSavedFindResults(), llmAvailable: llm } } as ApiResponse)
 })
 
 /**
