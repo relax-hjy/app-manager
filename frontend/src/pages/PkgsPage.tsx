@@ -6,34 +6,52 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import SortableAppGrid from '../components/SortableAppGrid'
 import InstallAgentCard from '../components/InstallAgentCard'
+import CategorySidebar from '../components/CategorySidebar'
+import { StatusChip } from '../components/ui/status-chip'
+import { Panel, PanelBody, PanelFooter } from '../components/ui/panel'
+import { AppCardHead } from '../components/app-bits'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover'
-import { Check, FileDown, FolderArchive, FolderOpen, Trash2, Briefcase, Code2, Wrench, Ellipsis, Grid3X3, Layers, X, Plus, ExternalLink, Search, Loader2 } from 'lucide-react'
+import { Briefcase, Check, Code2, Ellipsis, ExternalLink, FileDown, FolderArchive, FolderOpen, Grid3X3, Layers, Loader2, PackageSearch, Plus, Search, Trash2, Wrench, X } from 'lucide-react'
 
 const ALL_CAT = '__all__'
 
-const CAT_ICONS: Record<string, React.ComponentType<{className?: string}>> = {
+const CAT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   '办公工具': Briefcase,
   '开发工具': Code2,
   '实用工具': Wrench,
   '其他工具': Ellipsis,
 }
 
-function catIcon(name: string) { return CAT_ICONS[name] || Layers }
+/** 类目图标：已知类目专用图标，其余按名称哈希取通用瓦片 */
+function catIcon(name: string): React.ComponentType<{ className?: string }> {
+  if (name === '其他') return Ellipsis
+  return CAT_ICONS[name] || Layers
+}
 
-const COLORS = [
-  { text: 'text-stone-600', bg: 'bg-stone-600' },
-  { text: 'text-emerald-700', bg: 'bg-emerald-700' },
-  { text: 'text-amber-700', bg: 'bg-amber-700' },
-  { text: 'text-rose-700', bg: 'bg-rose-700' },
-  { text: 'text-violet-700', bg: 'bg-violet-700' },
-  { text: 'text-teal-700', bg: 'bg-teal-700' },
-]
-function catColor(name: string) {
-  let hash = 0
-  for (const c of name) hash = ((hash << 5) - hash) + c.charCodeAt(0)
-  return COLORS[Math.abs(hash) % COLORS.length]
+/** 安装包状态入口：未配置显示虚线加号，已配置显示成功色勾选；点击进入设置 */
+function PkgChip({ configured, label, title, onClick }: {
+  configured: boolean
+  label: string
+  title: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={e => { e.stopPropagation(); onClick() }}
+      className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-md border px-1.5 text-[11px] font-medium transition-colors ${
+        configured
+          ? 'border-success/30 bg-success-soft text-success hover:border-success/60'
+          : 'border-dashed border-border text-muted-foreground hover:border-brand/40 hover:bg-accent hover:text-foreground'
+      }`}
+    >
+      {configured ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+      {label}
+    </button>
+  )
 }
 
 export default function PkgsPage() {
@@ -105,6 +123,16 @@ export default function PkgsPage() {
     return () => window.clearInterval(timer)
   }, [hasRunningFind, refreshFindStatus])
 
+  /** 当前选中应用的查找任务：运行中任务优先（进度/取消），否则已持久化结果，否则内存任务（失败提示等） */
+  const memoryFindTask = selectedApp
+    ? findStatus?.tasks.find(t => t.appId === selectedApp.id)
+    : undefined
+  const savedFindTask = selectedApp
+    ? findStatus?.results?.find(t => t.appId === selectedApp.id)
+    : undefined
+  const selectedFindTask = memoryFindTask?.status === 'running' ? memoryFindTask : (savedFindTask ?? memoryFindTask)
+  const isFinding = memoryFindTask?.status === 'running'
+
   /** 打开/关闭找链接弹层；打开时若无可展示的候选结果则启动查找（已有结果直接展示，不重复搜索） */
   function handleFindOpenChange(open: boolean) {
     setShowFindMenu(open)
@@ -151,16 +179,6 @@ export default function PkgsPage() {
     }
   }
 
-  // 当前选中应用的查找任务：运行中任务优先（进度/取消），否则已持久化结果，否则内存任务（失败提示等）
-  const memoryFindTask = selectedApp
-    ? findStatus?.tasks.find(t => t.appId === selectedApp.id)
-    : undefined
-  const savedFindTask = selectedApp
-    ? findStatus?.results?.find(t => t.appId === selectedApp.id)
-    : undefined
-  const selectedFindTask = memoryFindTask?.status === 'running' ? memoryFindTask : (savedFindTask ?? memoryFindTask)
-  const isFinding = memoryFindTask?.status === 'running'
-
   /** 拖拽排序：乐观更新本地顺序，失败回滚并提示 */
   const handleReorder = useCallback(async (newOrder: AppInfo[]) => {
     const prev = apps
@@ -173,13 +191,6 @@ export default function PkgsPage() {
       toast('排序保存失败', 'error')
     }
   }, [apps, toast])
-
-  async function handleDeleteCat(name: string) {
-    await api.deleteCategory(name)
-    if (selectedCat === name) setSelectedCat(ALL_CAT)
-    setSelectedApp(null)
-    loadCategories()
-  }
 
   async function handleSavePkg(type: 'exe_pkg' | 'zip_pkg' | 'download_url', value: string) {
     if (!selectedApp) return
@@ -202,7 +213,7 @@ export default function PkgsPage() {
   async function handleLaunchPkg(app: AppInfo) {
     const filePath = app.exe_pkg || app.zip_pkg
     if (!filePath) {
-      alert('未设置安装包')
+      toast('未设置安装包', 'error')
       return
     }
     try {
@@ -218,7 +229,7 @@ export default function PkgsPage() {
   }
 
   async function handleToggleInstall(app: AppInfo) {
-    await api.updateApp(app.id, { is_installed: !app.is_installed } as any)
+    await api.updateApp(app.id, { is_installed: !app.is_installed } as Partial<AppInfo>)
     loadApps(selectedCat)
     if (selectedApp?.id === app.id) {
       setSelectedApp({ ...selectedApp, is_installed: !app.is_installed })
@@ -227,172 +238,88 @@ export default function PkgsPage() {
 
   return (
     <div
-      className="flex h-full"
+      className="app-shell flex h-full"
+      data-panel-open={selectedApp ? 'true' : undefined}
       style={{
-        containerType: 'inline-size',
-        gap: '1cqw',
-        '--side-w': 'max(14cqw, 148px)',
-        '--card-track': '20cqw',
-        '--card-gap': '1cqw',
+        gap: 'var(--card-gap)',
+        '--side-w': 'clamp(176px, 15cqw, 240px)',
+        '--card-gap': 'clamp(10px, 1.2cqw, 18px)',
       } as React.CSSProperties}
     >
-      {/* Sidebar */}
-      <aside className="flex-none flex flex-col rounded-xl border bg-card px-2 shadow-sm pb-3" style={{ width: 'var(--side-w)' }}>
-        <div className="flex items-center justify-between px-2 pt-4 pb-3">
-          <span className="text-base font-semibold">工具类目</span>
-          <Button size="icon" variant="ghost" className="invisible">
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex flex-col gap-0.5">
-        <button
-          onClick={() => { setSelectedCat(ALL_CAT); setSelectedApp(null) }}
-          className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors
-            ${ALL_CAT === selectedCat ? 'bg-secondary font-semibold text-secondary-foreground' : 'text-muted-foreground hover:bg-secondary/50'}`}
-        >
-          <Grid3X3 className={`h-4 w-4 ${ALL_CAT === selectedCat ? 'text-primary' : 'text-muted-foreground'}`} />
-          <span className="flex-1 truncate">全部工具</span>
-          <span className="text-xs text-muted-foreground/60 w-5 text-right shrink-0">
-            {categories.reduce((s, c) => s + c.apps.length, 0)}
-          </span>
-          <span className="shrink-0 w-4" />
-        </button>
-        {categories.map(cat => {
-          const Icon = catIcon(cat.name)
-          return (
-          <div
-            key={cat.name}
-            role="button"
-            tabIndex={0}
-            onClick={() => { setSelectedCat(cat.name); setSelectedApp(null) }}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCat(cat.name); setSelectedApp(null) } }}
-            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors cursor-pointer select-none
-              ${cat.name === selectedCat ? 'bg-secondary font-semibold text-secondary-foreground' : 'text-muted-foreground hover:bg-secondary/50'}`}
-          >
-            <Icon className={`h-4 w-4 shrink-0 ${catColor(cat.name).text}`} />
-            <span className="flex-1 truncate">{cat.name}</span>
-            <span className="text-xs text-muted-foreground/60 w-5 text-right shrink-0">{cat.apps.length}</span>
-            <button
-              onClick={e => { e.stopPropagation(); if (confirm(`删除类目「${cat.name}」？`)) handleDeleteCat(cat.name) }}
-              className="shrink-0 rounded p-0.5 opacity-0 hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-opacity"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        )})}
-        </div>
-        <InstallAgentCard apps={apps} onFinished={() => { loadApps(selectedCat); loadCategories() }} />
-      </aside>
+      <CategorySidebar
+        title="工具类目"
+        categories={categories}
+        selected={selectedCat}
+        allCount={categories.reduce((s, c) => s + c.apps.length, 0)}
+        allIcon={<Grid3X3 className="h-4 w-4" />}
+        iconFor={catIcon}
+        onSelect={key => { setSelectedCat(key); setSelectedApp(null); setShowFindMenu(false) }}
+        footer={<InstallAgentCard apps={apps} onFinished={() => { loadApps(selectedCat); loadCategories() }} />}
+      />
 
       {/* Main */}
-      <section className="flex-1 flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden">
+      <section className="flex-1 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="flex items-center justify-between px-[1cqw] pt-4 pb-3">
           <h2 className="text-base font-semibold leading-none m-0">
             {selectedCat === ALL_CAT ? '全部工具' : (selectedCat || '选择类目')}
             <span className="ml-2 text-sm font-normal text-muted-foreground leading-none">({apps.length} 个应用)</span>
           </h2>
-          <Button size="sm" className="invisible">
-            <Plus className="h-4 w-4" /> 添加
-          </Button>
         </div>
 
         {/* scrollbar-gutter: stable —— 纵向滚动条常驻占位，出现时不挤占卡片宽度导致横向滚动 */}
         <div className="flex-1 min-w-0 overflow-auto px-[1cqw] pb-4" style={{ scrollbarGutter: 'stable' }}>
           {apps.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <div className="text-5xl mb-3">📦</div>
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-surface/50 text-brand">
+                <PackageSearch className="h-6 w-6" />
+              </div>
               <p className="text-sm">该分类下暂无应用</p>
-              <p className="text-xs mt-1">先在应用管理中添加应用，再返回这里设置安装包</p>
+              <p className="text-xs text-muted-foreground/70">先在应用管理中添加应用，再返回这里设置安装包</p>
             </div>
           ) : (
             <SortableAppGrid apps={apps} onReorder={handleReorder} disabled={showForm}
-              cols={selectedApp ? 3 : 4}
               renderItem={app => (
                 <div
                   onClick={() => { setSelectedApp(app); setShowFindMenu(false) }}
-                  className={`rounded-xl border bg-white cursor-pointer transition-[border-color,box-shadow] hover:shadow-md flex flex-col
-                    ${selectedApp?.id === app.id ? 'border-[1a1a1a]/40 ring-1 ring-[1a1a1a]/20' : 'border-[#e5e6e8] hover:border-[#c5c7cc]'}`}
+                  className={`flex cursor-pointer flex-col rounded-xl border bg-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-md dark:shadow-none dark:hover:shadow-[0_8px_24px_-8px_oklch(0.05_0.02_262/0.6)]
+                    ${selectedApp?.id === app.id ? 'border-brand/60 ring-2 ring-brand/35' : 'border-border hover:border-brand/55'}`}
                 >
-                  {/* Header */}
-                  <div className="flex items-center gap-3 p-4 pb-2">
-                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${app.path && app.is_installed ? 'bg-white' : `${catColor(app.category).bg} text-white`}`}>
-                      {app.path && app.is_installed ? (
-                        <img
-                          src={api.getAppIconUrl(app.id)}
-                          alt={app.name}
-                          className="h-full w-full object-contain"
-                          onError={e => {
-                            const img = e.target as HTMLImageElement
-                            img.style.display = 'none'
-                            const fallback = img.nextElementSibling as HTMLElement
-                            if (fallback) { fallback.style.display = ''; fallback.textContent = app.name.charAt(0) }
-                          }}
-                        />
-                      ) : null}
-                      <span style={app.path && app.is_installed ? { display: 'none' } : undefined}>{app.name.charAt(0)}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-[#1f2329] truncate" style={{ fontSize: 16 }}>
-                        {app.name}
-                        <span className="inline-block rounded border border-[#e5e6e8] px-1.5 py-px ml-2 font-normal align-middle" style={{ fontSize: 12, color: '#646a73' }}>{app.category}</span>
-                      </div>
-                      <div className="text-[#646a73] truncate" style={{ fontSize: 13 }}>
-                        {app.version ? `v${app.version}` : ''}
-                      </div>
-                    </div>
-                    <span
-                      className="shrink-0 font-medium select-none"
-                      style={{
-                        fontSize: 12, borderRadius: 4, padding: '2px 8px',
-                        color: app.is_installed ? '#16a34a' : '#dc2626',
-                        background: app.is_installed ? '#f0fdf4' : '#fef2f2',
-                      }}
-                    >
-                      {app.is_installed ? '已安装' : '未安装'}
-                    </span>
-                  </div>
+                  <AppCardHead
+                    app={app}
+                    iconUrl={api.getAppIconUrl(app.id)}
+                    status={<StatusChip installed={app.is_installed} />}
+                  />
 
-                  {/* Body */}
-                  <div className="px-4 pb-1 flex-1">
-                    <p className="text-[#646a73] leading-relaxed line-clamp-2" style={{ fontSize: 13 }}>
-                      {app.description || '暂无描述'}
-                    </p>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="flex flex-wrap items-center gap-1 px-4 py-2.5 mt-1 border-t border-[#f0f0f0]">
-                    <button
-                      onClick={e => { e.stopPropagation(); setPkgType('exe_pkg'); setSelectedApp(app); setShowForm(true) }}
-                      className="whitespace-nowrap text-[#646a73] hover:text-[1a1a1a] hover:bg-[#f2f3f5] rounded px-2.5 py-1 transition-colors select-none"
-                      style={{ fontSize: 13 }}
-                    >
-                      设置EXE
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); setPkgType('zip_pkg'); setSelectedApp(app); setShowForm(true) }}
-                      className="whitespace-nowrap text-[#646a73] hover:text-[1a1a1a] hover:bg-[#f2f3f5] rounded px-2.5 py-1 transition-colors select-none"
-                      style={{ fontSize: 13 }}
-                    >
-                      设置ZIP
-                    </button>
-                    <div className="flex-1" />
-                    {app.download_url && (
-                      <button
-                        onClick={e => { e.stopPropagation(); window.open(app.download_url, '_blank') }}
-                        className="whitespace-nowrap text-[#646a73] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none"
-                        style={{ fontSize: 13 }}
-                      >
-                        <ExternalLink className="h-3.5 w-3.5 inline mr-0.5" />下载
-                      </button>
+                  {/* Body：无描述只留一行高留白，避免满屏「暂无描述」噪音 */}
+                  <div className="min-h-5 flex-1 px-4 pb-1">
+                    {app.description && (
+                      <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
+                        {app.description}
+                      </p>
                     )}
+                  </div>
+
+                  {/* Footer：EXE/ZIP 状态即配置入口（虚线+加号=未配置，实心勾=已配置），右侧主操作安装 */}
+                  <div className="mt-1 flex items-center gap-1.5 border-t border-border/60 px-2.5 py-2">
+                    <PkgChip configured={!!app.exe_pkg} label="EXE"
+                      title={app.exe_pkg ? '更换 EXE 安装包' : '设置 EXE 安装包'}
+                      onClick={() => { setPkgType('exe_pkg'); setSelectedApp(app); setShowForm(true) }} />
+                    <PkgChip configured={!!app.zip_pkg} label="ZIP"
+                      title={app.zip_pkg ? '更换 ZIP 安装包' : '设置 ZIP 安装包'}
+                      onClick={() => { setPkgType('zip_pkg'); setSelectedApp(app); setShowForm(true) }} />
+                    {app.download_url && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="打开下载链接"
+                        onClick={e => { e.stopPropagation(); window.open(app.download_url, '_blank') }}>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <div className="flex-1" />
                     {(app.exe_pkg || app.zip_pkg) && (
-                      <button
-                        onClick={e => { e.stopPropagation(); handleLaunchPkg(app) }}
-                        className="whitespace-nowrap text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none font-medium"
-                        style={{ fontSize: 13 }}
-                      >
+                      <Button variant="ghost" size="sm"
+                        className="h-7 gap-1.5 px-2 text-xs font-semibold text-brand hover:bg-brand-soft hover:text-brand"
+                        onClick={e => { e.stopPropagation(); handleLaunchPkg(app) }}>
                         安装
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -404,182 +331,151 @@ export default function PkgsPage() {
 
       {/* Detail Panel */}
       {selectedApp && (
-        <aside className="flex-none flex flex-col rounded-xl border bg-card shadow-sm shrink-0" style={{ width: 'var(--card-track)', minWidth: 280 }}>
-          {/* 可滚动内容区 */}
-          <div className="flex-1 min-h-0 overflow-auto p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${selectedApp.path && selectedApp.is_installed ? 'bg-white' : `${catColor(selectedApp.category).bg} text-white`}`}>
-              {selectedApp.path && selectedApp.is_installed ? (
-                <img
-                  src={api.getAppIconUrl(selectedApp.id)}
-                  alt={selectedApp.name}
-                  className="h-full w-full object-contain"
-                  onError={e => {
-                    const img = e.target as HTMLImageElement
-                    img.style.display = 'none'
-                    const fallback = img.nextElementSibling as HTMLElement
-                    if (fallback) { fallback.style.display = ''; fallback.textContent = selectedApp.name.charAt(0) }
-                  }}
-                />
-              ) : null}
-              <span style={selectedApp.path && selectedApp.is_installed ? { display: 'none' } : undefined}>{selectedApp.name.charAt(0)}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-[#1f2329] truncate" style={{ fontSize: 16 }}>
-                {selectedApp.name}
-                <span className="inline-block rounded border border-[#e5e6e8] px-1.5 py-px ml-2 font-normal align-middle" style={{ fontSize: 12, color: '#646a73' }}>{selectedApp.category}</span>
+        <Panel className="w-[var(--panel-w)]">
+          <PanelBody>
+            <AppCardHead
+              app={selectedApp}
+              iconUrl={api.getAppIconUrl(selectedApp.id)}
+              status={<StatusChip installed={selectedApp.is_installed} />}
+              className="p-0"
+              trailing={
+                <button
+                  onClick={() => { setSelectedApp(null); setShowFindMenu(false) }}
+                  className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  title="关闭详情"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              }
+            />
+
+            {/* EXE */}
+            <div className="rounded-lg bg-surface p-3 space-y-2">
+              <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                <span className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"><FileDown className="h-4 w-4 text-brand" /> EXE 安装包</span>
+                <Button size="sm" variant="ghost" className="ml-auto shrink-0" onClick={() => { setPkgType('exe_pkg'); setShowForm(true) }}>
+                  {selectedApp.exe_pkg ? '更换' : '设置'}
+                </Button>
               </div>
-              <div className="text-[#646a73] truncate" style={{ fontSize: 13 }}>
-                {selectedApp.version ? `v${selectedApp.version}` : ''}
-              </div>
-            </div>
-            <span
-              className="shrink-0 font-medium select-none"
-              style={{
-                fontSize: 12, borderRadius: 4, padding: '2px 8px',
-                color: selectedApp.is_installed ? '#16a34a' : '#dc2626',
-                background: selectedApp.is_installed ? '#f0fdf4' : '#fef2f2',
-              }}
-            >
-              {selectedApp.is_installed ? '已安装' : '未安装'}
-            </span>
-            <button
-              onClick={() => { setSelectedApp(null); setShowFindMenu(false) }}
-              className="shrink-0 rounded p-1 text-[#646a73] hover:bg-[#f2f3f5] hover:text-[#1a1a1a] transition-colors"
-              title="关闭详情"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* EXE */}
-          <div className="rounded-lg bg-secondary/50 p-3 space-y-2">
-            <div className="flex items-center justify-between gap-1.5 flex-wrap">
-              <span className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"><FileDown className="h-4 w-4" /> EXE 安装包</span>
-              <Button size="sm" variant="ghost" className="ml-auto shrink-0" onClick={() => { setPkgType('exe_pkg'); setShowForm(true) }}>
-                {selectedApp.exe_pkg ? '更换' : '设置'}
-              </Button>
-            </div>
-            {selectedApp.exe_pkg ? (
-              <p className="font-mono text-xs text-muted-foreground break-all leading-relaxed">{selectedApp.exe_pkg}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground/60 italic">未添加</p>
-            )}
-          </div>
-
-          {/* ZIP */}
-          <div className="rounded-lg bg-secondary/50 p-3 space-y-2">
-            <div className="flex items-center justify-between gap-1.5 flex-wrap">
-              <span className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"><FolderArchive className="h-4 w-4" /> ZIP 压缩包</span>
-              <Button size="sm" variant="ghost" className="ml-auto shrink-0" onClick={() => { setPkgType('zip_pkg'); setShowForm(true) }}>
-                {selectedApp.zip_pkg ? '更换' : '设置'}
-              </Button>
-            </div>
-            {selectedApp.zip_pkg ? (
-              <p className="font-mono text-xs text-muted-foreground break-all leading-relaxed">{selectedApp.zip_pkg}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground/60 italic">未添加</p>
-            )}
-          </div>
-
-          {/* Download URL */}
-          <div className="rounded-lg bg-secondary/50 p-3 space-y-2">
-            <div className="flex items-center justify-between gap-1.5 flex-wrap">
-              <span className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"><ExternalLink className="h-4 w-4" /> 下载地址</span>
-              {findStatus && !findStatus.llmAvailable ? (
-                <span className="text-xs text-muted-foreground/80 whitespace-nowrap">规则模式（未配置 API Key）</span>
+              {selectedApp.exe_pkg ? (
+                <p className="font-mono text-xs text-muted-foreground break-all leading-relaxed">{selectedApp.exe_pkg}</p>
               ) : (
+                <p className="text-xs text-muted-foreground/60 italic">未添加</p>
+              )}
+            </div>
+
+            {/* ZIP */}
+            <div className="rounded-lg bg-surface p-3 space-y-2">
+              <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                <span className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"><FolderArchive className="h-4 w-4 text-brand" /> ZIP 压缩包</span>
+                <Button size="sm" variant="ghost" className="ml-auto shrink-0" onClick={() => { setPkgType('zip_pkg'); setShowForm(true) }}>
+                  {selectedApp.zip_pkg ? '更换' : '设置'}
+                </Button>
+              </div>
+              {selectedApp.zip_pkg ? (
+                <p className="font-mono text-xs text-muted-foreground break-all leading-relaxed">{selectedApp.zip_pkg}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground/60 italic">未添加</p>
+              )}
+            </div>
+
+            {/* Download URL */}
+            <div className="rounded-lg bg-surface p-3 space-y-2">
+              <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                <span className="text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"><ExternalLink className="h-4 w-4 text-brand" /> 下载地址</span>
+                {/* 规则模式下只隐藏「AI 找链接」，手动设置入口必须保留（无 API Key 也要能填 URL） */}
                 <div className="flex items-center gap-1 shrink-0 ml-auto">
                   {isFinding && (
                     <Button size="sm" variant="ghost" onClick={handleCancelFind}>取消</Button>
                   )}
-                  <Popover open={showFindMenu} onOpenChange={handleFindOpenChange}>
-                    <PopoverTrigger asChild>
-                      <Button size="sm" variant="ghost" disabled={applying}>
-                        {isFinding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                        {isFinding ? '查找中…' : selectedFindTask?.candidates?.length ? '查看候选' : 'AI 找链接'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent>
-                      {isFinding ? (
-                        <div className="flex items-center gap-2 px-3 py-2 text-xs text-[#646a73]">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> 正在联网查找，请稍候…
-                        </div>
-                      ) : selectedFindTask?.status === 'success' && selectedFindTask.candidates?.length ? (
-                        selectedFindTask.candidates.map((c, i) => (
-                          <button
-                            key={c.url}
-                            onClick={() => handleApplyCandidate(c.url)}
-                            disabled={applying}
-                            className="w-full rounded-md px-2.5 py-2 text-left transition-colors hover:bg-[#f2f3f5] disabled:opacity-50"
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <span className="shrink-0 font-medium text-[#646a73]" style={{ fontSize: 12 }}>#{i + 1}</span>
-                              <span className="flex-1 min-w-0 truncate text-xs text-blue-600">{c.url}</span>
-                              {c.isDirect && (
-                                <span className="shrink-0 rounded border border-[#e5e6e8] px-1 py-px" style={{ fontSize: 11, color: '#16a34a' }}>直链</span>
-                              )}
-                            </div>
-                            <p className="mt-0.5 truncate text-[#646a73]" style={{ fontSize: 11 }}>{c.note}</p>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-2 text-xs text-[#646a73]">
-                          {selectedFindTask?.message || '未找到候选链接'}
-                        </div>
-                      )}
-                      {!isFinding && (
-                        <div className="border-t border-[#f0f0f0] px-2 py-1.5">
-                          <button
-                            onClick={() => void startFind()}
-                            disabled={applying}
-                            className="flex w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-xs text-[#646a73] transition-colors hover:bg-[#f2f3f5] hover:text-[#1a1a1a] disabled:opacity-50"
-                          >
-                            <Search className="h-3.5 w-3.5" /> 重新查找
-                          </button>
-                        </div>
-                      )}
-                    </PopoverContent>
-                  </Popover>
+                  {findStatus?.llmAvailable && (
+                    <Popover open={showFindMenu} onOpenChange={handleFindOpenChange}>
+                      <PopoverTrigger asChild>
+                        <Button size="sm" variant="ghost" disabled={applying}>
+                          {isFinding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                          {isFinding ? '查找中…' : selectedFindTask?.candidates?.length ? '查看候选' : 'AI 找链接'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        {isFinding ? (
+                          <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> 正在联网查找，请稍候…
+                          </div>
+                        ) : selectedFindTask?.status === 'success' && selectedFindTask.candidates?.length ? (
+                          selectedFindTask.candidates.map((c, i) => (
+                            <button
+                              key={c.url}
+                              onClick={() => handleApplyCandidate(c.url)}
+                              disabled={applying}
+                              className="w-full rounded-md px-2.5 py-2 text-left transition-colors hover:bg-accent disabled:opacity-50"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span className="shrink-0 text-xs font-medium text-muted-foreground">#{i + 1}</span>
+                                <span className="flex-1 min-w-0 truncate text-xs text-link">{c.url}</span>
+                                {c.isDirect && (
+                                  <span className="shrink-0 rounded bg-success-soft px-1 py-px text-[11px] font-medium text-success">直链</span>
+                                )}
+                              </div>
+                              <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{c.note}</p>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-xs text-muted-foreground">
+                            {selectedFindTask?.message || '未找到候选链接'}
+                          </div>
+                        )}
+                        {!isFinding && (
+                          <div className="border-t border-border/60 px-2 py-1.5">
+                            <button
+                              onClick={() => void startFind()}
+                              disabled={applying}
+                              className="flex w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                            >
+                              <Search className="h-3.5 w-3.5" /> 重新查找
+                            </button>
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                  )}
                   <Button size="sm" variant="ghost" onClick={() => { setPkgType('download_url'); setShowForm(true) }}>
                     {selectedApp.download_url ? '更换' : '设置'}
                   </Button>
                 </div>
+              </div>
+              {selectedApp.download_url ? (
+                <a href={selectedApp.download_url} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-link hover:underline break-all leading-relaxed">
+                  {selectedApp.download_url}
+                </a>
+              ) : (
+                <p className="text-xs text-muted-foreground/60 italic">未添加</p>
               )}
             </div>
-            {selectedApp.download_url ? (
-              <a href={selectedApp.download_url} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-blue-600 hover:underline break-all leading-relaxed">
-                {selectedApp.download_url}
-              </a>
-            ) : (
-              <p className="text-xs text-muted-foreground/60 italic">未添加</p>
-            )}
-          </div>
 
-          {selectedApp.path && (
-            <div className="rounded-lg bg-secondary/50 p-3 space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">应用路径</span>
-              <p className="font-mono text-xs break-all">{selectedApp.path}</p>
-            </div>
-          )}
-          </div>
+            {selectedApp.path && (
+              <div className="rounded-lg bg-surface p-3 space-y-1">
+                <span className="text-xs font-medium text-muted-foreground">应用路径</span>
+                <p className="font-mono text-xs break-all">{selectedApp.path}</p>
+              </div>
+            )}
+          </PanelBody>
 
           {/* 固定底部操作区 */}
-          <div className="shrink-0 border-t border-[#f0f0f0] p-5 pt-3">
+          <PanelFooter>
             <button
               onClick={() => handleToggleInstall(selectedApp)}
-              className="w-full py-2 rounded-lg font-medium text-sm transition-colors select-none"
-              style={{
-                color: selectedApp.is_installed ? '#16a34a' : '#dc2626',
-                background: selectedApp.is_installed ? '#f0fdf4' : '#fef2f2',
-              }}
+              className={`flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-colors select-none ${
+                selectedApp.is_installed
+                  ? 'bg-success-soft text-success hover:brightness-95'
+                  : 'bg-danger-soft text-danger hover:brightness-95'
+              }`}
             >
-              <Check className="h-4 w-4 inline mr-1" />
+              <Check className="h-4 w-4" />
               {selectedApp.is_installed ? '已安装（点击切换）' : '未安装（点击切换）'}
             </button>
-          </div>
-        </aside>
+          </PanelFooter>
+        </Panel>
       )}
 
       {/* Dialog */}
@@ -650,8 +546,8 @@ function PkgForm({ type, currentValue, appName, onClose, onSave }: {
         } else {
           setError(res.message || '上传安装包失败')
         }
-      } catch (err: any) {
-        setError(err?.message || '上传安装包失败')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '上传安装包失败')
       } finally {
         setCopying(false)
       }
@@ -672,8 +568,8 @@ function PkgForm({ type, currentValue, appName, onClose, onSave }: {
       } else {
         setError(res.message || '复制安装包失败')
       }
-    } catch (err: any) {
-      setError(err?.message || '复制安装包失败，请检查文件路径是否正确')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '复制安装包失败，请检查文件路径是否正确')
     } finally {
       setCopying(false)
     }
@@ -719,17 +615,20 @@ function PkgForm({ type, currentValue, appName, onClose, onSave }: {
         </div>
       )}
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+        <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>
       )}
-      <div className="flex justify-end gap-2 pt-2">
+      {/* 移除是破坏性次要操作：收进同一行左侧的幽灵按钮，避免整条红底横杠压过「保存」 */}
+      <div className="flex items-center gap-2 pt-2">
+        {currentValue && (
+          <Button type="button" variant="ghost" size="sm"
+            className="mr-auto text-danger hover:bg-danger-soft hover:text-danger"
+            onClick={() => onSave('')}>
+            <Trash2 className="h-3.5 w-3.5" /> {isDownloadUrl ? '移除下载地址' : '移除安装包'}
+          </Button>
+        )}
         <Button type="button" variant="outline" onClick={onClose}>取消</Button>
         <Button type="submit" disabled={copying}>{copying ? '复制中...' : '保存'}</Button>
       </div>
-      {currentValue && (
-        <Button type="button" variant="destructive" className="w-full" onClick={() => onSave('')}>
-          <Trash2 className="h-4 w-4" /> {isDownloadUrl ? '移除下载地址' : '移除安装包'}
-        </Button>
-      )}
     </form>
   )
 }

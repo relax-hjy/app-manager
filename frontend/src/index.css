@@ -1,32 +1,247 @@
 @import "tailwindcss";
 
-@theme inline {
-  --color-background: #ffffff;
-  --color-foreground: #1a1a1a;
-  --color-card: #ffffff;
-  --color-card-foreground: #1a1a1a;
-  --color-primary: #1a1a1a;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #f5f5f5;
-  --color-secondary-foreground: #1a1a1a;
-  --color-muted: #f5f5f5;
-  --color-muted-foreground: #6b6b6b;
-  --color-accent: #f5f5f5;
-  --color-accent-foreground: #1a1a1a;
-  --color-destructive: #e0443e;
-  --color-destructive-foreground: #ffffff;
-  --color-border: #e8e8e8;
-  --color-input: #e8e8e8;
-  --color-ring: #1a1a1a;
-  --radius-sm: 0.375rem;
-  --radius: 0.5rem;
-  --radius-lg: 0.75rem;
+/* 主题切换采用 class 策略：html.dark 生效 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * 靛蓝石板双主题 token：浅色=冷调石板白，深色=午夜分层 + 靛蓝高光。
+ * 色值来自 ui-designer skill 的 Studio Blue / Midnight 色板，实算对比度：
+ * 浅色 brand 对 brand-soft 5.24:1，深色 5.42:1，正文全部 ≥4.5:1。
+ */
+:root {
+  --background: oklch(0.976 0.003 264.5);
+  --foreground: oklch(0.257 0.032 266);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.257 0.032 266);
+  --surface: oklch(0.957 0.006 255.5);
+  --primary: oklch(0.457 0.215 277);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.945 0.009 258.3);
+  --secondary-foreground: oklch(0.324 0.035 262);
+  --muted: oklch(0.945 0.009 258.3);
+  --muted-foreground: oklch(0.507 0.032 258.4);
+  --accent: oklch(0.935 0.025 271.1);
+  --accent-foreground: oklch(0.362 0.087 268.9);
+  --brand: oklch(0.511 0.23 277);
+  --brand-soft: oklch(0.94 0.028 283.7);
+  --success: oklch(0.514 0.107 164.5);
+  --success-soft: oklch(0.95 0.019 167.9);
+  --warning: oklch(0.508 0.108 73.3);
+  --warning-soft: oklch(0.953 0.035 82.9);
+  --danger: oklch(0.518 0.179 26.1);
+  --danger-soft: oklch(0.942 0.023 17.6);
+  --link: oklch(0.491 0.185 263.2);
+  --border: oklch(0.917 0.012 259.8);
+  --input: oklch(0.893 0.015 260.7);
+  --ring: oklch(0.585 0.204 277.1);
 }
 
-* { border-color: var(--color-border); }
+.dark {
+  --background: oklch(0.163 0.014 264.1);
+  --foreground: oklch(0.936 0.012 264.5);
+  --card: oklch(0.217 0.022 260.5);
+  --card-foreground: oklch(0.936 0.012 264.5);
+  --surface: oklch(0.252 0.029 263.9);
+  --primary: oklch(0.785 0.104 274.7);
+  --primary-foreground: oklch(0.244 0.054 271.3);
+  --secondary: oklch(0.276 0.028 261.5);
+  --secondary-foreground: oklch(0.936 0.012 264.5);
+  --muted: oklch(0.276 0.028 261.5);
+  --muted-foreground: oklch(0.719 0.03 261.4);
+  --accent: oklch(0.313 0.057 265.5);
+  --accent-foreground: oklch(0.921 0.038 272.5);
+  --brand: oklch(0.724 0.144 276.1);
+  --brand-soft: oklch(0.303 0.063 271.1);
+  --success: oklch(0.788 0.123 166.2);
+  --success-soft: oklch(0.299 0.039 171.2);
+  --warning: oklch(0.843 0.12 82.4);
+  --warning-soft: oklch(0.295 0.041 85.2);
+  --danger: oklch(0.749 0.13 20.6);
+  --danger-soft: oklch(0.274 0.044 13.5);
+  --link: oklch(0.772 0.115 263.8);
+  --border: oklch(0.304 0.03 260.5);
+  --input: oklch(0.33 0.028 256.8);
+  --ring: oklch(0.724 0.144 276.1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-surface: var(--surface);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--card);
+  --color-link: var(--link);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
 body {
-  background: #f5f5f5;
-  color: var(--color-foreground);
+  background: var(--background);
+  color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* 顶缘靛蓝氛围光：只在 body 层做一次径向渐变，随主题切换自动换色 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(46rem 20rem at 12% -6%, oklch(0.78 0.13 277 / 0.14), transparent 70%),
+    radial-gradient(38rem 18rem at 88% -8%, oklch(0.78 0.1 250 / 0.1), transparent 70%);
+}
+
+.dark body::before {
+  background:
+    radial-gradient(46rem 20rem at 12% -6%, oklch(0.72 0.144 276 / 0.1), transparent 70%),
+    radial-gradient(38rem 18rem at 88% -8%, oklch(0.72 0.1 250 / 0.07), transparent 70%);
+}
+
+::selection {
+  background: oklch(0.8 0.11 277 / 0.35);
+}
+
+.dark ::selection {
+  background: oklch(0.724 0.144 276 / 0.35);
+}
+
+/* 钻面卡片：深色主题给一层内描边高光，模拟切面微光 */
+.facet {
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.05);
+  border-color: oklch(0.34 0.03 261);
+}
+
+/*
+ * 应用外壳：轨道宽恒定、列数随容器宽度降档。
+ * 轨道宽 = (容器宽 − 侧栏 − 主区左右内边距 − 滚动条) / 列数 − 栏距；
+ * 详情面板宽恰为一列，所以“开面板 = 少一列”，卡片尺寸始终不变。
+ * 窄窗（内置浏览器 718px 等）不降列会把卡片压到 111px 并裁切内容，故按窗口宽度降档。
+ */
+.app-shell {
+  container-type: inline-size;
+  --cols-design: 4;
+  --panel-open: 0;
+  --card-track: calc((100cqw - var(--side-w) - 2cqw - 14px) / var(--cols-design) - var(--card-gap));
+  --grid-cols: calc(var(--cols-design) - var(--panel-open));
+  --panel-w: var(--card-track);
+}
+
+.app-shell[data-panel-open] {
+  --panel-open: 1;
+}
+
+@media (max-width: 1199px) {
+  .app-shell { --cols-design: 3; }
+}
+
+@media (max-width: 899px) {
+  .app-shell { --cols-design: 2; }
+}
+
+/* 应用卡片网格：列数由 --grid-cols 控制，轨道宽恒定 */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols, 4), var(--card-track, 240px));
+  gap: var(--card-gap, 12px);
+}
+
+/* ---- 弹层/面板动画（animate-in / slide-in / fade / zoom 工具类） ---- */
+@keyframes am-enter {
+  from { opacity: 0; }
+}
+@keyframes am-exit {
+  to { opacity: 0; }
+}
+@keyframes am-enter-y {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+}
+@keyframes am-enter-y-down {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+}
+@keyframes am-enter-x-right {
+  from { opacity: 0; transform: translateX(16px); }
+}
+@keyframes am-enter-x-right-full {
+  from { opacity: 0; transform: translateX(100%); }
+}
+@keyframes am-exit-x-right-full {
+  to { opacity: 0; transform: translateX(100%); }
+}
+@keyframes am-enter-zoom {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+}
+@keyframes am-exit-zoom {
+  to { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+}
+@keyframes am-enter-fade {
+  from { opacity: 0; }
+}
+
+/* 通用浮层：fade-in-0 / fade-out-0 + slide（非居中元素） */
+[data-state='open'].animate-in {
+  animation: am-enter-y-down 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+[data-state='open'].slide-in-from-right-full {
+  animation: am-enter-x-right-full 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+[data-state='open'].slide-in-from-right-4 {
+  animation: am-enter-x-right 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-in.slide-in-from-right-full {
+  animation: am-enter-x-right-full 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-in.slide-in-from-right-4 {
+  animation: am-enter-x-right 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+[data-state='closed'].animate-out {
+  animation: am-exit 0.12s ease-in both;
+}
+
+/* 对话框：覆盖中心定位元素 */
+[data-state='open'].zoom-in-95 {
+  animation: am-enter-zoom 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+[data-state='closed'].zoom-out-95 {
+  animation: am-exit-zoom 0.14s ease-in both;
+}
+
+/* 细滚条，贴合并行密度 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.55 0.02 262 / 0.35) transparent;
+}
+
+.dark * {
+  scrollbar-color: oklch(0.7 0.02 262 / 0.3) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

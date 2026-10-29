@@ -25,8 +25,6 @@ export interface SortableAppGridProps {
   onReorder: (newOrder: AppInfo[]) => void
   /** 禁用拖拽（如弹窗打开时） */
   disabled?: boolean
-  /** 网格列数：详情面板关闭 4 列、打开 3 列（轨道宽度恒定，前三列位置不变） */
-  cols?: 3 | 4
   /** 卡片内容渲染（各页保留自己的卡片布局） */
   renderItem: (app: AppInfo, ctx: { isDragging: boolean }) => ReactNode
 }
@@ -35,8 +33,9 @@ export interface SortableAppGridProps {
  * 可拖拽排序的应用卡片网格。
  * 2D 网格使用 rectSortingStrategy；PointerSensor 以 8px 位移阈值区分点击与拖动，
  * 点击卡片打开详情、拖动卡片排序互不干扰。
+ * 列数与轨道宽完全由 .app-shell 的 CSS 变量决定（见 index.css），组件不感知宽度。
  */
-export default function SortableAppGrid({ apps, onReorder, disabled, cols = 4, renderItem }: SortableAppGridProps) {
+export default function SortableAppGrid({ apps, onReorder, disabled, renderItem }: SortableAppGridProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -55,15 +54,7 @@ export default function SortableAppGrid({ apps, onReorder, disabled, cols = 4, r
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={apps.map(a => a.id)} strategy={rectSortingStrategy}>
-        <div
-          className="grid"
-          style={{
-            // 轨道宽上限固定（cqw，相对页面容器），列数变化时前三列位置/大小基本不变；
-            // minmax(0, …) 允许在边框/滚动条挤占宽度时轻微收缩，避免出现横向滚动条
-            gridTemplateColumns: `repeat(${cols}, minmax(0, var(--card-track, 27cqw)))`,
-            gap: 'var(--card-gap, 1cqw)',
-          }}
-        >
+        <div className="app-grid">
           {apps.map(app => (
             <SortableAppItem key={app.id} app={app} disabled={disabled} renderItem={renderItem} />
           ))}
@@ -91,7 +82,8 @@ function SortableAppItem({ app, disabled, renderItem }: { app: AppInfo; disabled
       style={style}
       {...attributes}
       {...listeners}
-      className={`touch-none select-none ${isDragging ? 'opacity-70 shadow-lg ring-1 ring-[#1a1a1a]/20 cursor-grabbing' : ''}`}
+      // 拖拽中保持不透明：opacity<1 会让下层卡片透上来；rounded-xl 让 ring 跟随卡片圆角，避免方形双边框
+      className={`touch-none select-none ${isDragging ? 'z-10 rounded-xl bg-card shadow-[0_20px_40px_-16px_oklch(0.2_0.03_264/0.45)] ring-2 ring-brand/45 cursor-grabbing dark:shadow-[0_24px_44px_-16px_oklch(0.05_0.02_262/0.8)]' : ''}`}
     >
       {renderItem(app, { isDragging })}
     </div>

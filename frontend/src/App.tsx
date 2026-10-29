@@ -5,11 +5,13 @@ import DocsPage from './pages/DocsPage'
 import PkgsPage from './pages/PkgsPage'
 import SettingsPage from './pages/SettingsPage'
 import { ToastProvider } from './components/ui/toast'
+import { ThemeProvider } from './lib/theme'
 
 export default function App() {
   return (
-    <ToastProvider>
-      <BrowserRouter>
+    <ThemeProvider>
+      <ToastProvider>
+        <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Navigate to="/apps" replace />} />
@@ -20,6 +22,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-    </ToastProvider>
+      </ToastProvider>
+    </ThemeProvider>
   )
 }

@@ -6,10 +6,13 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { Panel, PanelBody, PanelFooter } from '../components/ui/panel'
+import { paletteOf, TYPE_TILE } from '../lib/palette'
+import { cn } from '../lib/utils'
 import { Plus, Trash2, Search, FileText, Edit2, ExternalLink, BookOpen, Wrench, Lightbulb, Ellipsis, Grid3X3, FolderSearch, CheckSquare, Square, X } from 'lucide-react'
 
 const DOC_TYPES = ['知识总结', '工具指南', '参考文档', '工作日记', '其他']
-const TYPE_ICONS: Record<string, React.ComponentType<{className?: string}>> = {
+const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   '知识总结': BookOpen,
   '工具指南': Wrench,
   '参考文档': Lightbulb,
@@ -17,25 +20,14 @@ const TYPE_ICONS: Record<string, React.ComponentType<{className?: string}>> = {
   '其他': Ellipsis,
 }
 
-const TYPE_CLASSES: Record<string, string> = {
-  '知识总结': 'bg-emerald-100 text-emerald-700',
-  '工具指南': 'bg-blue-100 text-blue-700',
-  '参考文档': 'bg-violet-100 text-violet-700',
-  '工作日记': 'bg-amber-100 text-amber-700',
-}
-
-const COLORS = [
-  { text: 'text-stone-600', bg: 'bg-stone-600' },
-  { text: 'text-emerald-700', bg: 'bg-emerald-700' },
-  { text: 'text-amber-700', bg: 'bg-amber-700' },
-  { text: 'text-rose-700', bg: 'bg-rose-700' },
-  { text: 'text-violet-700', bg: 'bg-violet-700' },
-  { text: 'text-teal-700', bg: 'bg-teal-700' },
-]
-function catColor(name: string) {
-  let hash = 0
-  for (const c of name) hash = ((hash << 5) - hash) + c.charCodeAt(0)
-  return COLORS[Math.abs(hash) % COLORS.length]
+/** 文档类型徽章：OKLCH 实心底 + 白字，双主题下均保对比度 */
+function DocTypeChip({ format, className }: { format: string; className?: string }) {
+  const tile = TYPE_TILE[format] || paletteOf(format)
+  return (
+    <span className={cn('inline-block rounded px-1.5 py-px text-xs font-medium text-white', tile.bg, className)}>
+      {format}
+    </span>
+  )
 }
 
 const ALL = '__all__'
@@ -283,27 +275,36 @@ export default function DocsPage() {
     : ''
 
   return (
-    <div className="flex gap-4 h-full">
+    <div
+      className="app-shell flex h-full"
+      data-panel-open={selectedDoc ? 'true' : undefined}
+      style={{
+        gap: 'var(--card-gap)',
+        '--side-w': 'clamp(176px, 15cqw, 240px)',
+        '--card-gap': 'clamp(10px, 1.2cqw, 18px)',
+      } as React.CSSProperties}
+    >
       {/* Sidebar */}
-      <aside className="w-[220px] flex flex-col rounded-xl border bg-card px-2 shadow-sm pb-3">
-        <div className="flex items-center justify-between px-2 pt-4 pb-3">
-          <span className="text-base font-semibold">文档类目</span>
-          <Button size="icon" variant="ghost" className="invisible">
-            <Plus className="h-4 w-4" />
-          </Button>
+      <aside className="flex h-full flex-none flex-col rounded-xl border border-border bg-card pb-2 shadow-sm" style={{ width: 'var(--side-w)' }}>
+        <div className="flex items-center px-3 pt-4 pb-3">
+          <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">文档类目</span>
         </div>
-        <div className="flex flex-col gap-0.5">
+        <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto px-1">
           <div
             role="button"
             tabIndex={0}
             onClick={() => { setSelType(ALL); setSelLingyu(ALL) }}
             onKeyDown={e => { if (e.key === 'Enter') { setSelType(ALL); setSelLingyu(ALL) } }}
-            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors cursor-pointer select-none
-              ${ALL === selType ? 'bg-secondary font-semibold text-secondary-foreground' : 'text-muted-foreground hover:bg-secondary/50'}`}
+            className={cn(
+              'relative flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+              ALL === selType
+                ? 'bg-brand-soft font-semibold text-accent-foreground before:absolute before:inset-y-[22%] before:left-[6px] before:w-[2px] before:rounded-full before:bg-brand before:content-[""]'
+                : 'text-muted-foreground hover:bg-secondary/60 hover:text-secondary-foreground'
+            )}
           >
-            <Grid3X3 className={`h-4 w-4 ${ALL === selType ? 'text-primary' : 'text-muted-foreground'}`} />
+            <Grid3X3 className={cn('h-4 w-4', ALL === selType ? 'text-brand' : 'text-muted-foreground')} />
             <span className="flex-1 truncate">全部文档</span>
-            <span className="text-xs text-muted-foreground/60 w-5 text-right shrink-0">{docs.length}</span>
+            <span className={cn('w-5 shrink-0 text-right text-xs', ALL === selType ? 'text-accent-foreground/70' : 'text-muted-foreground/60')}>{docs.length}</span>
             <span className="shrink-0 w-4" />
           </div>
 
@@ -317,12 +318,16 @@ export default function DocsPage() {
                   tabIndex={0}
                   onClick={() => handleSelectType(group.type)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSelectType(group.type) } }}
-                  className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors cursor-pointer select-none
-                    ${isTypeActive ? 'bg-secondary font-semibold text-secondary-foreground' : 'text-muted-foreground hover:bg-secondary/50'}`}
+                  className={cn(
+                    'relative flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                    isTypeActive
+                      ? 'bg-brand-soft font-semibold text-accent-foreground before:absolute before:inset-y-[22%] before:left-[6px] before:w-[2px] before:rounded-full before:bg-brand before:content-[""]'
+                      : 'text-muted-foreground hover:bg-secondary/60 hover:text-secondary-foreground'
+                  )}
                 >
-                  <Icon className={`h-4 w-4 shrink-0 ${isTypeActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <Icon className={cn('h-4 w-4 shrink-0', isTypeActive ? 'text-brand' : (TYPE_TILE[group.type] || paletteOf(group.type)).text)} />
                   <span className="flex-1 truncate">{group.type}</span>
-                  <span className="text-xs text-muted-foreground/60 w-5 text-right shrink-0">{group.count}</span>
+                  <span className={cn('w-5 shrink-0 text-right text-xs', isTypeActive ? 'text-accent-foreground/70' : 'text-muted-foreground/60')}>{group.count}</span>
                   <span className="shrink-0 w-4" />
                 </div>
                 {isTypeActive && group.lingyus.length > 0 && (
@@ -331,14 +336,19 @@ export default function DocsPage() {
                       <div
                         key={ly}
                         onClick={() => setSelLingyu(ly)}
-                        className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors cursor-pointer select-none
-                          ${selLingyu === ly ? 'bg-secondary/70 font-medium text-secondary-foreground' : 'text-muted-foreground hover:bg-secondary/40'}`}
+                        className={cn(
+                          'group/ly flex cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors',
+                          selLingyu === ly
+                            ? 'bg-secondary font-medium text-secondary-foreground'
+                            : 'text-muted-foreground hover:bg-secondary/40'
+                        )}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catColor(ly).bg}`} />
+                        <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', paletteOf(ly).bg)} />
                         <span className="flex-1 truncate">{ly}</span>
                         <button
                           onClick={e => { e.stopPropagation(); handleDeleteCategory(group.type, ly) }}
-                          className="shrink-0 rounded p-0.5 opacity-0 hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-opacity"
+                          title={`删除领域 ${ly}`}
+                          className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-danger-soft hover:text-danger focus-visible:opacity-100 group-hover/ly:opacity-100"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -353,99 +363,91 @@ export default function DocsPage() {
       </aside>
 
       {/* Main content */}
-      <section className="flex-1 flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 pt-4 pb-3">
-          <h2 className="text-base font-semibold leading-none m-0">
+      <section className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-2 px-[1cqw] pt-4 pb-3">
+          <h2 className="shrink-0 text-base font-semibold leading-none m-0">
             {selType === ALL ? '全部文档' : selLingyu !== ALL ? `${selType} · ${selLingyu}` : selType}
             <span className="ml-2 text-sm font-normal text-muted-foreground leading-none">({filtered.length} 篇)</span>
           </h2>
-          <div className="relative">
+          {/* 搜索框可伸缩：窄窗下让出空间，按钮不换行 */}
+          <div className="relative ml-auto min-w-0 max-w-56 flex-1 basis-40">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="搜索名称/描述…" className="pl-8 w-56 h-8 text-xs"
+              placeholder="搜索名称/描述…" className="h-8 w-full pl-8 text-xs"
             />
           </div>
-          <div className="flex items-center gap-1.5">
-            <Button size="sm" className="bg-amber-50 text-amber-700 hover:bg-amber-100" onClick={handleScan} disabled={scanning}>
-              <FolderSearch className="h-4 w-4" /> {scanning ? '扫描中…' : '扫描文件'}
-            </Button>
-            <Button size="sm" onClick={() => { setEditingDoc(null); setShowForm(true) }}>
-              <Plus className="h-4 w-4" /> 新建文档
-            </Button>
-          </div>
+          {/* 扫描是次要维护动作：用中性 secondary，避免琥珀色在靛蓝界面里抢主操作 */}
+          <Button size="sm" variant="secondary" className="shrink-0" onClick={handleScan} disabled={scanning}>
+            <FolderSearch className="h-4 w-4" /> {scanning ? '扫描中…' : '扫描文件'}
+          </Button>
+          <Button size="sm" className="shrink-0" onClick={() => { setEditingDoc(null); setShowForm(true) }}>
+            <Plus className="h-4 w-4" /> 新建文档
+          </Button>
         </div>
 
-        <div className="flex-1 overflow-auto px-4 pb-4">
+        <div className="flex-1 overflow-auto px-[1cqw] pb-4" style={{ scrollbarGutter: 'stable' }}>
           {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <div className="text-5xl mb-3">{search ? '🔍' : '📝'}</div>
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-surface/50 text-brand">
+                {search ? <Search className="h-6 w-6" /> : <FileText className="h-6 w-6" />}
+              </div>
               <p className="text-sm">{search ? '未找到匹配文档' : '暂无文档，点击上方按钮创建'}</p>
             </div>
           ) : (
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+            // 与应用页同一套恒定轨道网格：4/3/2 列，开详情面板少一列
+            <div className="app-grid">
               {filtered.map(doc => (
                 <div
                   key={doc.id}
                   onClick={() => setSelectedDoc(doc)}
-                  className={`rounded-xl border bg-white cursor-pointer transition-all hover:shadow-md flex flex-col
-                    ${selectedDoc?.id === doc.id ? 'border-[1a1a1a]/40 ring-1 ring-[1a1a1a]/20' : 'border-[#e5e6e8] hover:border-[#c5c7cc]'}`}
+                  className={cn(
+                    'flex cursor-pointer flex-col rounded-xl border bg-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-md dark:shadow-none dark:hover:shadow-[0_8px_24px_-8px_oklch(0.05_0.02_262/0.6)]',
+                    selectedDoc?.id === doc.id ? 'border-brand/60 ring-2 ring-brand/35' : 'border-border hover:border-brand/55'
+                  )}
                 >
                   <div className="flex items-start gap-3 p-4 pb-2">
-                    <div className="h-10 w-10 rounded-lg bg-[#1a1a1a] flex items-center justify-center text-white shrink-0">
+                    <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white', (TYPE_TILE[doc.format] || paletteOf(doc.format || 'doc')).bg)}>
                       <FileText className="h-5 w-5" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-[#1f2329] truncate" style={{ fontSize: 16 }}>
-                        {doc.name}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[15px] font-semibold leading-5 text-foreground" title={doc.name}>{doc.name}</div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                        {doc.format && <DocTypeChip format={doc.format} />}
+                        {doc.category && (
+                          <span className="inline-block rounded border border-border px-1.5 py-px text-xs text-muted-foreground">
+                            {doc.category}
+                          </span>
+                        )}
                       </div>
-                      {doc.category && (
-                        <span className="inline-block rounded border border-[#e5e6e8] px-1.5 py-px mt-0.5" style={{ fontSize: 12, color: '#646a73' }}>
-                          {doc.category}
-                        </span>
-                      )}
-                      {doc.format && (
-                        <span className={`inline-block rounded px-1.5 py-px ml-1.5 mt-0.5 font-medium ${TYPE_CLASSES[doc.format] || 'bg-slate-100 text-slate-700'}`} style={{ fontSize: 12 }}>
-                          {doc.format}
-                        </span>
-                      )}
                     </div>
                   </div>
 
                   {doc.description && (
                     <div className="px-4 pb-1 flex-1">
-                      <p className="text-[#646a73] leading-relaxed line-clamp-2" style={{ fontSize: 13 }}>
-                        {doc.description}
-                      </p>
+                      <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{doc.description}</p>
                     </div>
                   )}
 
-                  <div className="flex items-center gap-1 px-4 py-2.5 mt-auto border-t border-[#f0f0f0]">
-                    <span className="text-xs text-muted-foreground">
+                  {/* 底栏节奏与应用卡片一致：次级操作（编辑/删除）靠左，主操作「打开」靠右 */}
+                  <div className="mt-auto flex items-center gap-1 border-t border-border/60 px-2.5 py-2">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" title="编辑文档" aria-label="编辑文档"
+                      onClick={e => { e.stopPropagation(); setEditingDoc(doc); setShowForm(true) }}>
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-danger-soft hover:text-danger" title="删除文档" aria-label="删除文档"
+                      onClick={e => { e.stopPropagation(); if (confirm('删除此文档？')) handleDelete(doc.id) }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <span className="ml-1 truncate text-xs text-muted-foreground">
                       {doc.app_id ? apps.find(a => a.id === doc.app_id)?.name || '' : ''}
                     </span>
                     <div className="flex-1" />
-                    <button
-                      onClick={e => { e.stopPropagation(); doc.path ? handleOpenPath(doc.path) : toast('未关联文件', 'error') }}
-                      className="text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none font-medium inline-flex items-center gap-1"
-                      style={{ fontSize: 13 }}
-                    >
+                    {/* 与「启动 / 安装」统一：卡片主操作用品牌色文字按钮，而非灰色实心块 */}
+                    <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs font-semibold text-brand hover:bg-brand-soft hover:text-brand"
+                      onClick={e => { e.stopPropagation(); doc.path ? handleOpenPath(doc.path) : toast('未关联文件', 'error') }}>
                       <ExternalLink className="h-3.5 w-3.5" /> 打开
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); setEditingDoc(doc); setShowForm(true) }}
-                      className="text-[#646a73] hover:text-[#1a1a1a] hover:bg-[#f2f3f5] rounded px-2 py-1 transition-colors"
-                      style={{ fontSize: 13 }}
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); if (confirm('删除此文档？')) handleDelete(doc.id) }}
-                      className="text-[#646a73] hover:text-red-500 hover:bg-red-50 rounded px-2 py-1 transition-colors"
-                      style={{ fontSize: 13 }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -456,41 +458,45 @@ export default function DocsPage() {
 
       {/* Detail Panel */}
       {selectedDoc && (
-        <aside className="w-72 rounded-xl border bg-card p-5 shadow-sm overflow-auto space-y-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-[#1a1a1a] flex items-center justify-center text-white shrink-0">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-[#1f2329] truncate" style={{ fontSize: 16 }}>
-                {selectedDoc.name}
+        <Panel className="w-[var(--panel-w)]">
+          <PanelBody>
+            <div className="flex items-center gap-3">
+              <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white', (TYPE_TILE[selectedDoc.format] || paletteOf(selectedDoc.format || 'doc')).bg)}>
+                <FileText className="h-5 w-5" />
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                {selectedDoc.format && (
-                  <span className={`inline-block rounded px-1.5 py-px font-medium ${TYPE_CLASSES[selectedDoc.format] || 'bg-slate-100 text-slate-700'}`} style={{ fontSize: 12 }}>
-                    {selectedDoc.format}
-                  </span>
-                )}
-                {selectedDoc.category && (
-                  <span className="inline-block rounded border border-[#e5e6e8] px-1.5 py-px" style={{ fontSize: 12, color: '#646a73' }}>
-                    {selectedDoc.category}
-                  </span>
-                )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[15px] font-semibold leading-5 text-foreground" title={selectedDoc.name}>{selectedDoc.name}</div>
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  {selectedDoc.format && <DocTypeChip format={selectedDoc.format} />}
+                  {selectedDoc.category && (
+                    <span className="inline-block rounded border border-border px-1.5 py-px text-xs text-muted-foreground">
+                      {selectedDoc.category}
+                    </span>
+                  )}
+                </div>
               </div>
+              <button
+                onClick={() => setSelectedDoc(null)}
+                className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                title="关闭详情"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          </div>
 
-          <div className="space-y-3 text-sm">
-            <Field label="类型" value={selectedDoc.format || '—'} />
-            <Field label="领域" value={selectedDoc.category || '—'} />
-            <Field label="关联应用" value={linkedAppName || '—'} />
-            <Field label="描述" value={selectedDoc.description || '—'} />
-            <Field label="文件路径" value={selectedDoc.path || '—'} mono />
-          </div>
+            <div className="space-y-3 text-sm">
+              <Field label="类型" value={selectedDoc.format || '—'} />
+              <Field label="领域" value={selectedDoc.category || '—'} />
+              <Field label="关联应用" value={linkedAppName || '—'} />
+              <Field label="描述" value={selectedDoc.description || '—'} />
+              <Field label="文件路径" value={selectedDoc.path || '—'} mono />
+            </div>
+          </PanelBody>
 
-          <div className="space-y-2 pt-1">
+          {/* 动作固定在底栏，长内容滚动时不会被卷走（与应用 / 安装包面板一致） */}
+          <PanelFooter>
             {selectedDoc.path && (
-              <Button size="sm" className="w-full bg-[#1a1a1a] hover:bg-[#333] text-white" onClick={() => handleOpenPath(selectedDoc.path!)}>
+              <Button size="sm" className="w-full" onClick={() => handleOpenPath(selectedDoc.path!)}>
                 <ExternalLink className="h-3.5 w-3.5" /> 打开文件
               </Button>
             )}
@@ -498,12 +504,12 @@ export default function DocsPage() {
               <Button size="sm" variant="outline" className="flex-1" onClick={() => { setEditingDoc(selectedDoc); setShowForm(true) }}>
                 <Edit2 className="h-3.5 w-3.5" /> 编辑
               </Button>
-              <Button size="sm" variant="destructive" className="flex-1" onClick={() => { if (confirm('删除此文档？')) handleDelete(selectedDoc.id) }}>
+              <Button size="sm" variant="outline" className="flex-1 border-danger/35 text-danger hover:border-danger/60 hover:bg-danger-soft hover:text-danger" onClick={() => { if (confirm('删除此文档？')) handleDelete(selectedDoc.id) }}>
                 <Trash2 className="h-3.5 w-3.5" /> 删除
               </Button>
             </div>
-          </div>
-        </aside>
+          </PanelFooter>
+        </Panel>
       )}
 
       <Dialog open={showForm} onOpenChange={(open) => { if (!open) { setShowForm(false); setEditingDoc(null) } }}>
@@ -533,21 +539,21 @@ export default function DocsPage() {
               <div className="text-sm text-muted-foreground space-y-1">
                 <div>扫描目录：<span className="font-mono text-xs">{scanData.docDir}</span></div>
                 <div>
-                  已扫描 <span className="font-semibold text-[#1a1a1a]">{scanData.totalScanned}</span> 个文件，
-                  发现 <span className="font-semibold text-[#1a1a1a]">{scanData.newFiles.length}</span> 个新文件
+                  已扫描 <span className="font-semibold text-foreground">{scanData.totalScanned}</span> 个文件，
+                  发现 <span className="font-semibold text-foreground">{scanData.newFiles.length}</span> 个新文件
                   {scanData.newCategories.length > 0 && (
-                    <span>，<span className="font-semibold text-amber-700">{scanData.newCategories.length} 个新领域</span></span>
+                    <span>，<span className="font-semibold text-warning">{scanData.newCategories.length} 个新领域</span></span>
                   )}
                   {scanData.deletedDocs.length > 0 && (
-                    <span>，<span className="font-semibold text-red-600">{scanData.deletedDocs.length} 个文件已删除</span></span>
+                    <span>，<span className="font-semibold text-danger">{scanData.deletedDocs.length} 个文件已删除</span></span>
                   )}
                 </div>
               </div>
 
               {/* 新领域列表 */}
               {scanData.newCategories.length > 0 && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <div className="text-xs font-semibold text-amber-800 mb-2">新领域</div>
+                <div className="rounded-lg border border-warning/25 bg-warning-soft p-3">
+                  <div className="mb-2 text-xs font-semibold text-warning">新领域</div>
                   <div className="space-y-1">
                     {(() => {
                       const grouped = new Map<string, typeof scanData.newCategories>()
@@ -558,12 +564,12 @@ export default function DocsPage() {
                       }
                       return Array.from(grouped.entries()).map(([format, cats]) => (
                         <div key={format} className="flex items-center gap-2 text-xs">
-                          <span className={`rounded px-1.5 py-px font-medium ${TYPE_CLASSES[format] || 'bg-slate-100 text-slate-700'}`}>{format}</span>
-                          <span className="text-amber-700">
+                          <DocTypeChip format={format} />
+                          <span className="text-warning">
                             {cats.map(c => (
-                              <span key={c.category} className="inline-flex items-center gap-1 mr-2">
+                              <span key={c.category} className="mr-2 inline-flex items-center gap-1">
                                 {c.category}
-                                {c.fileCount === 0 && <span className="text-amber-400">(空)</span>}
+                                {c.fileCount === 0 && <span className="opacity-60">(空)</span>}
                               </span>
                             ))}
                           </span>
@@ -576,12 +582,12 @@ export default function DocsPage() {
 
               {/* 已删除的文档 */}
               {scanData.deletedDocs.length > 0 && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-red-800">文件已被删除</span>
+                <div className="rounded-lg border border-danger/25 bg-danger-soft p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-danger">文件已被删除</span>
                     <button
                       onClick={toggleDeleteAll}
-                      className="inline-flex items-center gap-1.5 text-xs text-red-600 hover:text-red-800"
+                      className="inline-flex items-center gap-1.5 text-xs text-danger hover:brightness-90"
                     >
                       {deleteSelected.size === scanData.deletedDocs.length ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
                       全选 / 取消
@@ -592,27 +598,21 @@ export default function DocsPage() {
                       <div
                         key={d.id}
                         onClick={() => toggleDeleteDoc(d.id)}
-                        className="flex items-center gap-3 px-2.5 py-1.5 rounded cursor-pointer hover:bg-red-100 text-sm"
+                        className="flex cursor-pointer items-center gap-3 rounded px-2.5 py-1.5 text-sm transition-colors hover:bg-danger/10"
                       >
                         <span className="shrink-0">
                           {deleteSelected.has(d.id)
-                            ? <CheckSquare className="h-4 w-4 text-red-600" />
-                            : <Square className="h-4 w-4 text-muted-foreground/40" />
+                            ? <CheckSquare className="h-4 w-4 text-danger" />
+                            : <Square className="h-4 w-4 opacity-40" />
                           }
                         </span>
-                        <Trash2 className="h-4 w-4 text-red-400 shrink-0" />
+                        <Trash2 className="h-4 w-4 shrink-0 opacity-60" />
                         <span className="flex-1 truncate">{d.name}</span>
-                        {!d.path ? (
-                          <span className="shrink-0 rounded bg-slate-100 text-slate-500 px-1.5 py-px font-medium" style={{ fontSize: 12 }}>无文件</span>
-                        ) : (
-                          <span className="shrink-0 rounded bg-red-100 text-red-600 px-1.5 py-px font-medium" style={{ fontSize: 12 }}>已删除</span>
-                        )}
-                        {d.format && (
-                          <span className={`shrink-0 rounded px-1.5 py-px font-medium ${TYPE_CLASSES[d.format] || 'bg-slate-100 text-slate-700'}`} style={{ fontSize: 12 }}>{d.format}</span>
-                        )}
-                        {d.category && (
-                          <span className="text-xs text-muted-foreground">{d.category}</span>
-                        )}
+                        <span className={cn('shrink-0 rounded px-1.5 py-px text-xs font-medium', d.path ? 'bg-danger/15 text-danger' : 'bg-secondary text-muted-foreground')}>
+                          {d.path ? '已删除' : '无文件'}
+                        </span>
+                        {d.format && <DocTypeChip format={d.format} className="shrink-0" />}
+                        {d.category && <span className="text-xs text-muted-foreground">{d.category}</span>}
                       </div>
                     ))}
                   </div>
@@ -625,7 +625,7 @@ export default function DocsPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={toggleScanAll}
-                      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#1a1a1a]"
+                      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {scanSelected.size === scanData.newFiles.length ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
                       全选 / 取消
@@ -633,7 +633,7 @@ export default function DocsPage() {
                     <span className="text-xs text-muted-foreground">已选 {scanSelected.size} / {scanData.newFiles.length}</span>
                   </div>
 
-                  <div className="max-h-80 overflow-auto border rounded-lg">
+                  <div className="max-h-80 overflow-auto rounded-lg border border-border">
                     {(() => {
                       const grouped = new Map<string, typeof scanData.newFiles>()
                       for (const f of scanData.newFiles) {
@@ -644,31 +644,29 @@ export default function DocsPage() {
                       const newCatKeys = new Set(scanData.newCategories.map(c => `${c.format} / ${c.category}`))
                       return Array.from(grouped.entries()).map(([key, files]) => (
                         <div key={key}>
-                          <div className="flex items-center gap-2 px-3 py-2 bg-[#f9fafb] border-b text-xs font-medium text-muted-foreground sticky top-0">
-                            <span className={`w-1.5 h-1.5 rounded-full ${catColor(key).bg}`} />
+                          <div className="flex items-center gap-2 border-b border-border sticky top-0 bg-surface px-3 py-2 text-xs font-medium text-muted-foreground">
+                            <span className={cn('h-1.5 w-1.5 rounded-full', paletteOf(key).bg)} />
                             {key}
                             {newCatKeys.has(key) && (
-                              <span className="rounded bg-amber-100 text-amber-700 px-1.5 py-px font-medium">新领域</span>
+                              <span className="rounded bg-warning-soft px-1.5 py-px font-medium text-warning">新领域</span>
                             )}
-                            <span className="text-muted-foreground/50">({files.length})</span>
+                            <span className="opacity-60">({files.length})</span>
                           </div>
                           {files.map(f => (
                             <div
                               key={f.path}
                               onClick={() => toggleScanFile(f.path)}
-                              className="flex items-center gap-3 px-3 py-2.5 border-b border-[#f5f5f5] cursor-pointer hover:bg-[#fafafa] text-sm"
+                              className="flex cursor-pointer items-center gap-3 border-b border-border/50 px-3 py-2.5 text-sm transition-colors hover:bg-accent"
                             >
                               <span className="shrink-0">
                                 {scanSelected.has(f.path)
-                                  ? <CheckSquare className="h-4 w-4 text-[#1a1a1a]" />
-                                  : <Square className="h-4 w-4 text-muted-foreground/40" />
+                                  ? <CheckSquare className="h-4 w-4 text-brand" />
+                                  : <Square className="h-4 w-4 opacity-40" />
                                 }
                               </span>
-                              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                               <span className="flex-1 truncate font-medium">{f.name}</span>
-                              <span className={`shrink-0 rounded px-1.5 py-px font-medium ${TYPE_CLASSES[f.format] || 'bg-slate-100 text-slate-700'}`} style={{ fontSize: 12 }}>
-                                {f.format}
-                              </span>
+                              <DocTypeChip format={f.format} className="shrink-0" />
                             </div>
                           ))}
                         </div>
@@ -714,7 +712,7 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
 
 function DocForm({ doc, apps, categories, onClose, onSubmit, onDelete }: {
   doc: DocInfo | null; apps: AppInfo[]; categories: string[]
-  onClose: () => void; onSubmit: (data: any) => void; onDelete?: () => void
+  onClose: () => void; onSubmit: (data: Partial<DocInfo> & { name: string }) => void; onDelete?: () => void
 }) {
   const [name, setName] = useState(doc?.name || '')
   const [docType, setDocType] = useState(doc?.format || '')

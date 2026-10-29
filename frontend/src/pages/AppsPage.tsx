@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import type { ReactNode } from 'react'
 import type { AppCategory, AppInfo } from '../types'
 import * as api from '../api'
 import { useToast } from '../components/ui/toast'
@@ -6,14 +7,17 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Textarea } from '../components/ui/textarea'
 import SortableAppGrid from '../components/SortableAppGrid'
-
+import CategorySidebar from '../components/CategorySidebar'
+import { StatusChip } from '../components/ui/status-chip'
+import { Panel, PanelBody, PanelFooter } from '../components/ui/panel'
+import { AppCardHead } from '../components/app-bits'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Select, SelectValue, SelectTrigger, SelectContent, SelectItem } from '../components/ui/select'
-import { Plus, Trash2, Edit2, X, Play, Briefcase, Code2, Wrench, Ellipsis, Grid3X3, Layers, FolderOpen } from 'lucide-react'
+import { Briefcase, Code2, Edit2, Ellipsis, FolderOpen, Grid3X3, Layers, Play, Plus, Trash2, Wrench, X } from 'lucide-react'
 
 const ALL_CAT = '__all__'
 
-const CAT_ICONS: Record<string, React.ComponentType<{className?: string}>> = {
+const CAT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   '办公工具': Briefcase,
   '开发工具': Code2,
   '实用工具': Wrench,
@@ -24,18 +28,17 @@ function catIcon(name: string) {
   return CAT_ICONS[name] || Layers
 }
 
-const COLORS = [
-  { text: 'text-stone-600', bg: 'bg-stone-600' },
-  { text: 'text-emerald-700', bg: 'bg-emerald-700' },
-  { text: 'text-amber-700', bg: 'bg-amber-700' },
-  { text: 'text-rose-700', bg: 'bg-rose-700' },
-  { text: 'text-violet-700', bg: 'bg-violet-700' },
-  { text: 'text-teal-700', bg: 'bg-teal-700' },
-]
-function catColor(name: string) {
-  let hash = 0
-  for (const c of name) hash = ((hash << 5) - hash) + c.charCodeAt(0)
-  return COLORS[Math.abs(hash) % COLORS.length]
+/** 页面空状态：虚线框 + 图标瓦片 + 双行文案 */
+function EmptyState({ icon, title, hint }: { icon: ReactNode; title: string; hint?: string }) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-surface/50 text-brand [&_svg]:h-6 [&_svg]:w-6">
+        {icon}
+      </div>
+      <p className="text-sm">{title}</p>
+      {hint && <p className="text-xs text-muted-foreground/70">{hint}</p>}
+    </div>
+  )
 }
 
 export default function AppsPage() {
@@ -45,6 +48,8 @@ export default function AppsPage() {
   const [selectedApp, setSelectedApp] = useState<AppInfo | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingApp, setEditingApp] = useState<AppInfo | null>(null)
+  const [showCatDialog, setShowCatDialog] = useState(false)
+  const [catName, setCatName] = useState('')
   const { toast } = useToast()
 
   const loadCategories = useCallback(async () => {
@@ -94,19 +99,24 @@ export default function AppsPage() {
 
   async function handleDeleteCat(name: string) {
     await api.deleteCategory(name)
-    if (selectedCat === name) setSelectedCat('')
+    if (selectedCat === name) setSelectedCat(ALL_CAT)
     setSelectedApp(null)
     loadCategories()
   }
 
-  async function handleAddCat() {
-    const name = prompt('输入新分类名称：')
-    if (!name?.trim()) return
-    const res = await api.addCategory(name.trim())
+  /** 新增类目（对话框表单提交） */
+  async function handleAddCatSubmit() {
+    const name = catName.trim()
+    if (!name) return
+    const res = await api.addCategory(name)
     if (res.success) {
-      setSelectedCat(name.trim())
+      setSelectedCat(name)
+      setShowCatDialog(false)
+      setCatName('')
       loadCategories()
-    } else alert(res.message)
+    } else {
+      toast(res.message || '新增类目失败', 'error')
+    }
   }
 
   async function handleSubmitApp(data: Partial<AppInfo> & { name: string; category: string }) {
@@ -145,68 +155,32 @@ export default function AppsPage() {
 
   return (
     <div
-      className="flex h-full"
+      className="app-shell flex h-full"
+      data-panel-open={selectedApp ? 'true' : undefined}
       style={{
-        containerType: 'inline-size',
-        gap: '1cqw',
-        '--side-w': 'max(14cqw, 148px)',
-        '--card-track': '20cqw',
-        '--card-gap': '1cqw',
+        gap: 'var(--card-gap)',
+        '--side-w': 'clamp(176px, 15cqw, 240px)',
+        '--card-gap': 'clamp(10px, 1.2cqw, 18px)',
       } as React.CSSProperties}
     >
-      {/* Sidebar */}
-      <aside className="flex-none flex flex-col rounded-xl border bg-card px-2 shadow-sm pb-3" style={{ width: 'var(--side-w)' }}>
-        <div className="flex items-center justify-between px-2 pt-4 pb-3">
-          <span className="text-base font-semibold">工具类目</span>
-          <Button size="icon" variant="ghost" onClick={handleAddCat}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex flex-col gap-0.5">
-        {/* 全部工具 */}
-        <button
-          onClick={() => { setSelectedCat(ALL_CAT); setSelectedApp(null) }}
-          className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors
-            ${ALL_CAT === selectedCat ? 'bg-secondary font-semibold text-secondary-foreground' : 'text-muted-foreground hover:bg-secondary/50'}`}
-        >
-          <Grid3X3 className={`h-4 w-4 ${ALL_CAT === selectedCat ? 'text-primary' : 'text-muted-foreground'}`} />
-          <span className="flex-1 truncate">全部工具</span>
-          <span className="text-xs text-muted-foreground/60 w-5 text-right shrink-0">
-            {categories.reduce((s, c) => s + c.apps.length, 0)}
-          </span>
-          <span className="shrink-0 w-4" />
-        </button>
-        {categories.map(cat => {
-          const Icon = catIcon(cat.name)
-          return (
-          <div
-            key={cat.name}
-            role="button"
-            tabIndex={0}
-            onClick={() => { setSelectedCat(cat.name); setSelectedApp(null) }}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCat(cat.name); setSelectedApp(null) } }}
-            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors cursor-pointer select-none
-              ${cat.name === selectedCat ? 'bg-secondary font-semibold text-secondary-foreground' : 'text-muted-foreground hover:bg-secondary/50'}`}
-          >
-            <Icon className={`h-4 w-4 shrink-0 ${catColor(cat.name).text}`} />
-            <span className="flex-1 truncate">{cat.name}</span>
-            <span className="text-xs text-muted-foreground/60 w-5 text-right shrink-0">{cat.apps.length}</span>
-            <button
-              onClick={e => { e.stopPropagation(); if (confirm(`删除类目「${cat.name}」？`)) handleDeleteCat(cat.name) }}
-              className="shrink-0 rounded p-0.5 opacity-0 hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-opacity"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        )})}
-        </div>
-      </aside>
+      <CategorySidebar
+        title="工具类目"
+        categories={categories}
+        selected={selectedCat}
+        allCount={categories.reduce((s, c) => s + c.apps.length, 0)}
+        allIcon={<Grid3X3 className="h-4 w-4" />}
+        iconFor={name => catIcon(name)}
+        onSelect={key => { setSelectedCat(key); setSelectedApp(null) }}
+        onAdd={() => setShowCatDialog(true)}
+        onDeleteCat={handleDeleteCat}
+      />
 
       {/* Main content */}
-      <section className="flex-1 flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden">
+      <section className="flex-1 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="flex items-center justify-between px-[1cqw] pt-4 pb-3">
           <h2 className="text-base font-semibold leading-none m-0">
             {selectedCat === ALL_CAT ? '全部工具' : (selectedCat || '选择类目')}
+            <span className="ml-2 text-sm font-normal text-muted-foreground leading-none">({apps.length})</span>
           </h2>
           <Button size="sm" onClick={() => { setEditingApp(null); setShowForm(true) }} disabled={!selectedCat || selectedCat === ALL_CAT}>
             <Plus className="h-4 w-4" /> 添加应用
@@ -216,83 +190,43 @@ export default function AppsPage() {
         {/* scrollbar-gutter: stable —— 纵向滚动条常驻占位，出现时不挤占卡片宽度导致横向滚动 */}
         <div className="flex-1 min-w-0 overflow-auto px-[1cqw] pb-4" style={{ scrollbarGutter: 'stable' }}>
           {apps.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <div className="text-5xl mb-3">📋</div>
-              <p className="text-sm">暂无应用，点击上方按钮添加</p>
-            </div>
+            <EmptyState icon={<Grid3X3 />} title="暂无应用，点击上方按钮添加" hint="选中左侧具体类目后即可添加应用" />
           ) : (
             <SortableAppGrid apps={apps} onReorder={handleReorder} disabled={showForm}
-              cols={selectedApp ? 3 : 4}
               renderItem={app => (
                 <div
                   onClick={() => setSelectedApp(app)}
-                  className={`rounded-xl border bg-white cursor-pointer transition-[border-color,box-shadow] hover:shadow-md flex flex-col
-                    ${selectedApp?.id === app.id ? 'border-[1a1a1a]/40 ring-1 ring-[1a1a1a]/20' : 'border-[#e5e6e8] hover:border-[#c5c7cc]'}`}
+                  className={`group/card flex cursor-pointer flex-col rounded-xl border bg-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-md dark:shadow-none dark:hover:shadow-[0_8px_24px_-8px_oklch(0.05_0.02_262/0.6)]
+                    ${selectedApp?.id === app.id ? 'border-brand/60 ring-2 ring-brand/35' : 'border-border hover:border-brand/55'}`}
                 >
-                  {/* Header */}
-                  <div className="flex items-center gap-3 p-4 pb-2">
-                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${app.path && app.is_installed ? 'bg-white' : `${catColor(app.category).bg} text-white`}`}>
-                      {app.path && app.is_installed ? (
-                        <img
-                          src={api.getAppIconUrl(app.id)}
-                          alt={app.name}
-                          className="h-full w-full object-contain"
-                          onError={e => {
-                            const img = e.target as HTMLImageElement
-                            img.style.display = 'none'
-                            const fallback = img.nextElementSibling as HTMLElement
-                            if (fallback) { fallback.style.display = ''; fallback.textContent = app.name.charAt(0) }
-                          }}
-                        />
-                      ) : null}
-                      <span style={app.path && app.is_installed ? { display: 'none' } : undefined}>{app.name.charAt(0)}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-[#1f2329] truncate" style={{ fontSize: 16 }}>
-                        {app.name}
-                        <span className="inline-block rounded border border-[#e5e6e8] px-1.5 py-px ml-2 font-normal align-middle" style={{ fontSize: 12, color: '#646a73' }}>{app.category}</span>
-                      </div>
-                      <div className="text-[#646a73] truncate" style={{ fontSize: 13 }}>
-                        {app.version ? `v${app.version}` : ''}
-                      </div>
-                    </div>
-                    <span
-                      className="shrink-0 font-medium select-none"
-                      style={{
-                        fontSize: 12, borderRadius: 4, padding: '2px 8px',
-                        color: app.is_installed ? '#16a34a' : '#dc2626',
-                        background: app.is_installed ? '#f0fdf4' : '#fef2f2',
-                      }}
-                    >
-                      {app.is_installed ? '已安装' : '未安装'}
-                    </span>
+                  <AppCardHead
+                    app={app}
+                    iconUrl={api.getAppIconUrl(app.id)}
+                    status={<StatusChip installed={app.is_installed} />}
+                  />
+
+                  {/* Body：无描述只留一行高留白，避免满屏「暂无描述」噪音 */}
+                  <div className="min-h-5 flex-1 px-4 pb-1">
+                    {app.description && (
+                      <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
+                        {app.description}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Body */}
-                  <div className="px-4 pb-1 flex-1">
-                    <p className="text-[#646a73] leading-relaxed line-clamp-2" style={{ fontSize: 13 }}>
-                      {app.description || '暂无描述'}
-                    </p>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="flex flex-wrap items-center gap-1 px-4 py-2.5 mt-1 border-t border-[#f0f0f0]">
-                    <button
-                      onClick={e => { e.stopPropagation(); setEditingApp(app); setShowForm(true) }}
-                      className="whitespace-nowrap text-[#646a73] hover:text-[1a1a1a] hover:bg-[#f2f3f5] rounded px-2.5 py-1 transition-colors select-none"
-                      style={{ fontSize: 13 }}
-                    >
-                      编辑
-                    </button>
+                  {/* Footer：编辑降为图标，启动作为卡片主操作（品牌色文字按钮） */}
+                  <div className="mt-1 flex flex-wrap items-center gap-1 border-t border-border/60 px-2.5 py-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" title="编辑应用" aria-label="编辑应用"
+                      onClick={e => { e.stopPropagation(); setEditingApp(app); setShowForm(true) }}>
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </Button>
                     <div className="flex-1" />
                     {app.path && app.is_installed && (
-                      <button
-                        onClick={e => { e.stopPropagation(); handleLaunch(app.path!) }}
-                        className="whitespace-nowrap text-[#1a1a1a] hover:bg-[#f5f5f5] rounded px-2.5 py-1 transition-colors select-none font-medium"
-                        style={{ fontSize: 13 }}
-                      >
-                        启动
-                      </button>
+                      <Button variant="ghost" size="sm"
+                        className="h-8 gap-1.5 px-2.5 text-xs font-semibold text-brand hover:bg-brand-soft hover:text-brand"
+                        onClick={e => { e.stopPropagation(); handleLaunch(app.path!) }}>
+                        <Play className="h-3.5 w-3.5" /> 启动
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -304,67 +238,37 @@ export default function AppsPage() {
 
       {/* Detail Panel */}
       {selectedApp && (
-        <aside className="flex-none flex flex-col rounded-xl border bg-card shadow-sm shrink-0" style={{ width: 'var(--card-track)', minWidth: 280 }}>
-          {/* 可滚动内容区 */}
-          <div className="flex-1 min-h-0 overflow-auto p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${selectedApp.path && selectedApp.is_installed ? 'bg-white' : `${catColor(selectedApp.category).bg} text-white`}`}>
-              {selectedApp.path && selectedApp.is_installed ? (
-                <img
-                  src={api.getAppIconUrl(selectedApp.id)}
-                  alt={selectedApp.name}
-                  className="h-full w-full object-contain"
-                  onError={e => {
-                    const img = e.target as HTMLImageElement
-                    img.style.display = 'none'
-                    const fallback = img.nextElementSibling as HTMLElement
-                    if (fallback) { fallback.style.display = ''; fallback.textContent = selectedApp.name.charAt(0) }
-                  }}
-                />
-              ) : null}
-              <span style={selectedApp.path && selectedApp.is_installed ? { display: 'none' } : undefined}>{selectedApp.name.charAt(0)}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-[#1f2329] truncate" style={{ fontSize: 16 }}>
-                {selectedApp.name}
-                <span className="inline-block rounded border border-[#e5e6e8] px-1.5 py-px ml-2 font-normal align-middle" style={{ fontSize: 12, color: '#646a73' }}>{selectedApp.category}</span>
-              </div>
-              <div className="text-[#646a73] truncate" style={{ fontSize: 13 }}>
-                {selectedApp.version ? `v${selectedApp.version}` : ''}
-              </div>
-            </div>
-            <span
-              className="shrink-0 font-medium select-none"
-              style={{
-                fontSize: 12, borderRadius: 4, padding: '2px 8px',
-                color: selectedApp.is_installed ? '#16a34a' : '#dc2626',
-                background: selectedApp.is_installed ? '#f0fdf4' : '#fef2f2',
-              }}
-            >
-              {selectedApp.is_installed ? '已安装' : '未安装'}
-            </span>
-            <button
-              onClick={() => setSelectedApp(null)}
-              className="shrink-0 rounded p-1 text-[#646a73] hover:bg-[#f2f3f5] hover:text-[#1a1a1a] transition-colors"
-              title="关闭详情"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+        <Panel className="w-[var(--panel-w)]">
+          <PanelBody>
+            <AppCardHead
+              app={selectedApp}
+              iconUrl={api.getAppIconUrl(selectedApp.id)}
+              status={<StatusChip installed={selectedApp.is_installed} />}
+              className="p-0"
+              trailing={
+                <button
+                  onClick={() => setSelectedApp(null)}
+                  className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  title="关闭详情"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              }
+            />
 
-          <div className="space-y-3 text-sm">
-            <Field label="路径" value={selectedApp.path || '—'} mono />
-            <Field label="描述" value={selectedApp.description || '—'} />
-            <Field label="EXE 包" value={selectedApp.exe_pkg || '—'} mono />
-            <Field label="ZIP 包" value={selectedApp.zip_pkg || '—'} mono />
-          </div>
+            <div className="space-y-3 text-sm">
+              <Field label="路径" value={selectedApp.path || '—'} mono />
+              <Field label="描述" value={selectedApp.description || '—'} />
+              <Field label="EXE 包" value={selectedApp.exe_pkg || '—'} mono />
+              <Field label="ZIP 包" value={selectedApp.zip_pkg || '—'} mono />
+            </div>
 
-          </div>
+          </PanelBody>
 
           {/* 固定底部操作区 */}
-          <div className="shrink-0 border-t border-[#f0f0f0] p-5 pt-3 space-y-2">
+          <PanelFooter>
             {selectedApp.path && selectedApp.is_installed && (
-              <Button size="sm" className="w-full bg-[#1a1a1a] hover:bg-[#333] text-white" onClick={() => handleLaunch(selectedApp.path!)}>
+              <Button size="sm" className="w-full" onClick={() => handleLaunch(selectedApp.path!)}>
                 <Play className="h-3.5 w-3.5" /> 启动应用
               </Button>
             )}
@@ -372,12 +276,13 @@ export default function AppsPage() {
               <Button size="sm" variant="outline" className="flex-1" onClick={() => { setEditingApp(selectedApp); setShowForm(true) }}>
                 <Edit2 className="h-3.5 w-3.5" /> 编辑
               </Button>
-              <Button size="sm" variant="destructive" className="flex-1" onClick={() => { if (confirm('删除此应用？')) handleDeleteApp(selectedApp.id) }}>
+              {/* 删除是破坏性操作：描边危险色，不做实心红块抢占面板底栏 */}
+              <Button size="sm" variant="outline" className="flex-1 border-danger/35 text-danger hover:border-danger/60 hover:bg-danger-soft hover:text-danger" onClick={() => { if (confirm('删除此应用？')) handleDeleteApp(selectedApp.id) }}>
                 <Trash2 className="h-3.5 w-3.5" /> 删除
               </Button>
             </div>
-          </div>
-        </aside>
+          </PanelFooter>
+        </Panel>
       )}
 
       {/* Form Dialog */}
@@ -395,35 +300,41 @@ export default function AppsPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* 新增类目 Dialog */}
+      <Dialog open={showCatDialog} onOpenChange={setShowCatDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>新增类目</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={e => { e.preventDefault(); handleAddCatSubmit() }} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">类目名称 *</label>
+              <Input value={catName} onChange={e => setCatName(e.target.value)} placeholder="如 设计工具" autoFocus />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setShowCatDialog(false)}>取消</Button>
+              <Button type="submit" disabled={!catName.trim()}>添加</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function Field({ label, value, mono, valueChip }: { label: string; value: string; mono?: boolean; valueChip?: 'installed' | 'not' }) {
+function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
       <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">{label}</div>
-      {valueChip ? (
-        <span
-          className="inline-block font-medium select-none"
-          style={{
-            fontSize: 12, borderRadius: 4, padding: '2px 8px',
-            color: valueChip === 'installed' ? '#16a34a' : '#dc2626',
-            background: valueChip === 'installed' ? '#f0fdf4' : '#fef2f2',
-          }}
-        >
-          {valueChip === 'installed' ? '已安装' : '未安装'}
-        </span>
-      ) : (
-        <div className={`text-sm ${mono ? 'font-mono text-xs break-all' : ''}`}>{value}</div>
-      )}
+      <div className={`text-sm ${mono ? 'font-mono text-xs break-all' : ''}`}>{value}</div>
     </div>
   )
 }
 
 function AppForm({ app, category, categories, onClose, onSubmit }: {
   app: AppInfo | null; category: string; categories: string[]; onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: Partial<AppInfo> & { name: string; category: string }) => void
 }) {
   const [name, setName] = useState(app?.name || '')
   const [selectedCat, setSelectedCat] = useState(app?.category || category || '')
@@ -503,7 +414,7 @@ function AppForm({ app, category, categories, onClose, onSubmit }: {
           点击浏览按钮选择文件；也可手动粘贴完整路径（如 <code>D:\Softwares\VSCode\Code.exe</code>）
         </p>
         {pickError && (
-          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{pickError}</p>
+          <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{pickError}</p>
         )}
       </div>
       <div className="space-y-1.5">

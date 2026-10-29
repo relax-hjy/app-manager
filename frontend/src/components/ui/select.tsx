@@ -12,7 +12,7 @@ const SelectTrigger = forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-9 w-full items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+      'flex h-9 w-full items-center justify-between rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground transition-colors placeholder:text-muted-foreground/70 hover:border-brand/40 focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-brand/60',
       className
     )}
     {...props}
@@ -33,7 +33,8 @@ const SelectContent = forwardRef<
       position="popper"
       sideOffset={4}
       className={cn(
-        'relative z-50 max-h-96 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border bg-white shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        // 下拉常叠在弹层的白色表单上：shadow-md 在白底上几乎不可见，改用与 Dialog 同族的悬浮投影
+        'relative z-50 max-h-96 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-[0_16px_36px_-12px_oklch(0.2_0.03_264/0.32),0_4px_10px_-4px_oklch(0.2_0.03_264/0.14)] dark:shadow-[0_18px_40px_-12px_oklch(0.05_0.02_262/0.75),0_4px_10px_-4px_oklch(0.05_0.02_262/0.5)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         className
       )}
       {...props}

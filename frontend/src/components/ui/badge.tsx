@@ -4,8 +4,8 @@ import type { HTMLAttributes } from 'react'
 const badgeVariants = {
   default: 'bg-primary text-primary-foreground',
   secondary: 'bg-secondary text-secondary-foreground',
-  success: 'bg-emerald-100 text-emerald-700',
-  outline: 'text-foreground border',
+  success: 'bg-success-soft text-success',
+  outline: 'text-muted-foreground border border-border',
 }
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {

@@ -17,7 +17,7 @@ const PopoverContent = forwardRef<
       // always：每帧跟随锚点重定位；optimized 模式下滚动容器内滚动不触发重算，弹层会悬空
       updatePositionStrategy="always"
       className={cn(
-        'z-50 w-72 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-[#e5e6e8] bg-white p-1 shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        'z-50 w-72 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-card p-1 text-card-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         className
       )}
       {...props}

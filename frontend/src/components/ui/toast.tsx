@@ -35,21 +35,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={ctxValue}>
       {children}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      <div className="pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2">
         {toasts.map(t => (
           <div
             key={t.id}
-            className="pointer-events-auto flex items-center gap-2.5 rounded-lg border bg-white px-4 py-3 shadow-lg animate-in slide-in-from-right-full fade-in transition-all"
+            className={`pointer-events-auto relative flex animate-in slide-in-from-right-full items-center gap-2.5 overflow-hidden rounded-lg border border-border bg-card px-4 py-3 text-card-foreground shadow-lg duration-200 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:content-[''] ${t.type === 'success' ? 'before:bg-success' : 'before:bg-danger'}`}
           >
             {t.type === 'success' ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
             ) : (
-              <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+              <XCircle className="h-4 w-4 shrink-0 text-danger" />
             )}
-            <span className="text-sm text-[#1f2329]">{t.message}</span>
+            <span className="text-sm">{t.message}</span>
             <button
               onClick={() => dismiss(t.id)}
-              className="ml-2 rounded p-0.5 text-muted-foreground hover:text-[#1f2329] hover:bg-secondary/50 transition-colors"
+              className="ml-2 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="关闭提示"
             >
               <X className="h-3.5 w-3.5" />
             </button>

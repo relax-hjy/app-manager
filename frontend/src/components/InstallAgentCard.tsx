@@ -13,12 +13,12 @@ const STATUS_LABEL: Record<InstallJobItem['status'], string> = {
 }
 
 const STATUS_COLOR: Record<InstallJobItem['status'], string> = {
-  pending: 'text-[#646a73]',
-  running: 'text-amber-600',
-  success: 'text-emerald-600',
-  failed: 'text-red-600',
-  manual: 'text-violet-600',
-  skipped: 'text-[#646a73]',
+  pending: 'text-muted-foreground',
+  running: 'text-warning',
+  success: 'text-success',
+  failed: 'text-danger',
+  manual: 'text-violet-400',
+  skipped: 'text-muted-foreground',
 }
 
 /**
@@ -91,9 +91,9 @@ export default function InstallAgentCard({ apps, onFinished }: { apps: AppInfo[]
   }
 
   return (
-    <div className="mt-auto rounded-lg bg-secondary/50 p-3 space-y-2">
+    <div className="mt-2 rounded-lg border border-border/60 bg-surface p-3 space-y-2">
       <div className="flex items-center gap-1.5">
-        <Bot className="h-4 w-4 text-primary" />
+        <Bot className="h-4 w-4 text-brand" />
         <span className="text-sm font-medium">自动安装智能体</span>
       </div>
 
@@ -105,28 +105,28 @@ export default function InstallAgentCard({ apps, onFinished }: { apps: AppInfo[]
         <>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>安装中 {doneCount}/{job!.items.length}</span>
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-warning" />
           </div>
-          <div className="h-1.5 rounded-full bg-[#e8e8e8] overflow-hidden">
+          <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
             <div
-              className="h-full rounded-full bg-[#1a1a1a] transition-all"
+              className="h-full rounded-full bg-brand transition-all duration-300"
               style={{ width: `${job!.items.length ? (doneCount / job!.items.length) * 100 : 0}%` }}
             />
           </div>
           <button
             onClick={() => setExpanded(v => !v)}
-            className="flex w-full items-center justify-between rounded px-1 py-0.5 text-xs text-[#646a73] hover:bg-[#f2f3f5] transition-colors"
+            className="flex w-full items-center justify-between rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             任务列表
             {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
           {expanded && (
-            <ul className="space-y-1 max-h-40 overflow-auto pr-1">
+            <ul className="max-h-40 space-y-1 overflow-auto pr-1">
               {job!.items.map(item => (
                 <li key={item.appId} className="text-xs leading-snug">
                   <span className={`font-medium ${STATUS_COLOR[item.status]}`}>{STATUS_LABEL[item.status]}</span>
-                  <span className="ml-1.5 text-[#1f2329]">{item.name}</span>
-                  {item.message && <p className="text-[11px] text-[#646a73] truncate" title={item.message}>{item.message}</p>}
+                  <span className="ml-1.5 text-foreground">{item.name}</span>
+                  {item.message && <p className="truncate text-[11px] text-muted-foreground" title={item.message}>{item.message}</p>}
                 </li>
               ))}
             </ul>
@@ -134,7 +134,7 @@ export default function InstallAgentCard({ apps, onFinished }: { apps: AppInfo[]
           <button
             onClick={handleCancel}
             disabled={job!.cancelRequested}
-            className="flex w-full items-center justify-center gap-1 rounded-md border border-[#e5e6e8] bg-white py-1 text-xs text-[#646a73] hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-1 rounded-md border border-border bg-card py-1 text-xs text-muted-foreground transition-colors hover:border-danger/40 hover:text-danger disabled:opacity-50"
           >
             <Square className="h-3 w-3" />
             {job!.cancelRequested ? '取消中…' : '取消'}
@@ -142,13 +142,13 @@ export default function InstallAgentCard({ apps, onFinished }: { apps: AppInfo[]
         </>
       ) : (
         <>
-          <p className="text-xs text-[#646a73]">
+          <p className="text-xs text-muted-foreground">
             {pending.length > 0 ? `${pending.length} 个应用待安装` : '没有待安装的应用'}
           </p>
           <button
             onClick={handleStart}
             disabled={pending.length === 0 || starting}
-            className="flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-[#1a1a1a] py-1.5 text-xs font-medium text-white hover:bg-[#333] transition-colors disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-primary py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-[filter,transform] hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
           >
             {starting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
             一键安装
@@ -157,18 +157,18 @@ export default function InstallAgentCard({ apps, onFinished }: { apps: AppInfo[]
             <>
               <button
                 onClick={() => setExpanded(v => !v)}
-                className="flex w-full items-center justify-between rounded px-1 py-0.5 text-xs text-[#646a73] hover:bg-[#f2f3f5] transition-colors"
+                className="flex w-full items-center justify-between rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 上次结果（成功 {successCount} · 需手动 {manualCount} · 失败 {failCount}）
                 {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
               </button>
               {expanded && (
-                <ul className="space-y-1 max-h-40 overflow-auto pr-1">
+                <ul className="max-h-40 space-y-1 overflow-auto pr-1">
                   {job.items.map(item => (
                     <li key={item.appId} className="text-xs leading-snug">
                       <span className={`font-medium ${STATUS_COLOR[item.status]}`}>{STATUS_LABEL[item.status]}</span>
-                      <span className="ml-1.5 text-[#1f2329]">{item.name}</span>
-                      {item.message && <p className="text-[11px] text-[#646a73] truncate" title={item.message}>{item.message}</p>}
+                      <span className="ml-1.5 text-foreground">{item.name}</span>
+                      {item.message && <p className="truncate text-[11px] text-muted-foreground" title={item.message}>{item.message}</p>}
                     </li>
                   ))}
                 </ul>
