@@ -82,8 +82,8 @@ function SortableAppItem({ app, disabled, renderItem }: { app: AppInfo; disabled
       style={style}
       {...attributes}
       {...listeners}
-      // 拖拽中保持不透明：opacity<1 会让下层卡片透上来；rounded-xl 让 ring 跟随卡片圆角，避免方形双边框
-      className={`touch-none select-none ${isDragging ? 'z-10 rounded-xl bg-card shadow-[0_20px_40px_-16px_oklch(0.2_0.03_264/0.45)] ring-2 ring-brand/45 cursor-grabbing dark:shadow-[0_24px_44px_-16px_oklch(0.05_0.02_262/0.8)]' : ''}`}
+      // 拖拽中保持不透明：opacity<1 会让下层卡片透上来；rounded-[10px] 让 ring 跟随卡片圆角，避免方形双边框
+      className={`touch-none select-none ${isDragging ? 'z-10 rounded-[10px] bg-card shadow-[0_16px_32px_-12px_rgba(0,0,0,0.35)] ring-2 ring-brand/45 cursor-grabbing' : ''}`}
     >
       {renderItem(app, { isDragging })}
     </div>

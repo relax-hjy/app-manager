@@ -258,7 +258,7 @@ export default function PkgsPage() {
       />
 
       {/* Main */}
-      <section className="flex-1 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <section className="flex-1 flex flex-col overflow-hidden rounded-xl border border-border bg-card">
         <div className="flex items-center justify-between px-[1cqw] pt-4 pb-3">
           <h2 className="text-base font-semibold leading-none m-0">
             {selectedCat === ALL_CAT ? '全部工具' : (selectedCat || '选择类目')}
@@ -281,8 +281,8 @@ export default function PkgsPage() {
               renderItem={app => (
                 <div
                   onClick={() => { setSelectedApp(app); setShowFindMenu(false) }}
-                  className={`flex cursor-pointer flex-col rounded-xl border bg-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-md dark:shadow-none dark:hover:shadow-[0_8px_24px_-8px_oklch(0.05_0.02_262/0.6)]
-                    ${selectedApp?.id === app.id ? 'border-brand/60 ring-2 ring-brand/35' : 'border-border hover:border-brand/55'}`}
+                  className={`flex cursor-pointer flex-col overflow-hidden rounded-[10px] border bg-card transition-colors duration-150
+                    ${selectedApp?.id === app.id ? 'border-brand/60 ring-1 ring-brand/35' : 'border-border hover:border-foreground/20 hover:bg-surface/40'}`}
                 >
                   <AppCardHead
                     app={app}

@@ -3,11 +3,11 @@ import { type ButtonHTMLAttributes, forwardRef } from 'react'
 
 const variants = {
   default:
-    'bg-primary text-primary-foreground shadow-sm hover:brightness-110 hover:shadow-md active:brightness-95 active:shadow-sm',
-  secondary: 'bg-secondary text-secondary-foreground border border-border/60 hover:bg-accent',
+    'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95',
+  secondary: 'bg-secondary text-secondary-foreground border border-border hover:bg-accent',
   destructive:
-    'bg-destructive text-destructive-foreground shadow-sm hover:brightness-110 active:brightness-95',
-  outline: 'border border-input bg-card text-foreground hover:border-brand/50 hover:bg-accent hover:text-accent-foreground',
+    'bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/95',
+  outline: 'border border-input bg-transparent text-foreground hover:border-brand/50 hover:bg-accent hover:text-accent-foreground',
   ghost: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
 } as const
 

@@ -5,7 +5,7 @@ import { paletteOf } from '../lib/palette'
 import { Button } from './ui/button'
 import { Plus, X } from 'lucide-react'
 
-/** 侧栏单行：图标 + 文本 + 计数 +（可选悬停删除）；选中态用琥珀钻切标记 */
+/** 侧栏单行：图标 + 文本 + 计数 +（可选悬停删除）；选中态扁平浅底药丸 */
 function NavRow({
   selected,
   onSelect,
@@ -38,16 +38,16 @@ function NavRow({
         }
       }}
       className={cn(
-        'group relative flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+        'group relative flex cursor-pointer select-none items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
         selected
-          ? 'bg-brand-soft font-semibold text-accent-foreground before:absolute before:inset-y-[22%] before:left-[6px] before:w-[2px] before:rounded-full before:bg-brand before:content-[""]'
+          ? 'bg-secondary font-medium text-secondary-foreground'
           : 'text-muted-foreground hover:bg-secondary/60 hover:text-secondary-foreground'
       )}
     >
       <span className={cn('h-4 w-4 shrink-0', iconClass)}>{icon}</span>
       <span className="flex-1 truncate">{label}</span>
       {typeof count === 'number' && (
-        <span className={cn('w-5 shrink-0 text-right text-xs', selected ? 'text-accent-foreground/70' : 'text-muted-foreground/60')}>
+        <span className={cn('w-5 shrink-0 text-right text-[11px] tabular-nums', selected ? 'text-secondary-foreground/70' : 'text-muted-foreground/70')}>
           {count}
         </span>
       )}
@@ -99,7 +99,7 @@ export default function CategorySidebar({
 }) {
   return (
     <aside
-      className="flex h-full flex-none flex-col rounded-xl border border-border bg-card pb-2 shadow-sm"
+      className="flex h-full flex-none flex-col rounded-xl border border-border bg-card pb-2"
       style={{ width: 'var(--side-w)' }}
     >
       <div className="flex items-center justify-between px-3 pt-4 pb-3">

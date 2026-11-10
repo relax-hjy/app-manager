@@ -285,7 +285,7 @@ export default function DocsPage() {
       } as React.CSSProperties}
     >
       {/* Sidebar */}
-      <aside className="flex h-full flex-none flex-col rounded-xl border border-border bg-card pb-2 shadow-sm" style={{ width: 'var(--side-w)' }}>
+      <aside className="flex h-full flex-none flex-col rounded-xl border border-border bg-card pb-2" style={{ width: 'var(--side-w)' }}>
         <div className="flex items-center px-3 pt-4 pb-3">
           <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">文档类目</span>
         </div>
@@ -363,7 +363,7 @@ export default function DocsPage() {
       </aside>
 
       {/* Main content */}
-      <section className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <section className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card">
         <div className="flex items-center gap-2 px-[1cqw] pt-4 pb-3">
           <h2 className="shrink-0 text-base font-semibold leading-none m-0">
             {selType === ALL ? '全部文档' : selLingyu !== ALL ? `${selType} · ${selLingyu}` : selType}
@@ -402,8 +402,8 @@ export default function DocsPage() {
                   key={doc.id}
                   onClick={() => setSelectedDoc(doc)}
                   className={cn(
-                    'flex cursor-pointer flex-col rounded-xl border bg-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-md dark:shadow-none dark:hover:shadow-[0_8px_24px_-8px_oklch(0.05_0.02_262/0.6)]',
-                    selectedDoc?.id === doc.id ? 'border-brand/60 ring-2 ring-brand/35' : 'border-border hover:border-brand/55'
+                    'flex cursor-pointer flex-col overflow-hidden rounded-[10px] border bg-card transition-colors duration-150',
+                    selectedDoc?.id === doc.id ? 'border-brand/60 ring-1 ring-brand/35' : 'border-border hover:border-foreground/20 hover:bg-surface/40'
                   )}
                 >
                   <div className="flex items-start gap-3 p-4 pb-2">

@@ -176,11 +176,11 @@ export default function AppsPage() {
       />
 
       {/* Main content */}
-      <section className="flex-1 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <section className="flex-1 flex flex-col overflow-hidden rounded-xl border border-border bg-card">
         <div className="flex items-center justify-between px-[1cqw] pt-4 pb-3">
-          <h2 className="text-base font-semibold leading-none m-0">
+          <h2 className="flex items-center gap-2.5 text-[15px] font-semibold leading-none m-0">
             {selectedCat === ALL_CAT ? '全部工具' : (selectedCat || '选择类目')}
-            <span className="ml-2 text-sm font-normal text-muted-foreground leading-none">({apps.length})</span>
+            <span className="rounded-full border border-border bg-secondary/50 px-2 py-0.5 text-[11px] font-normal text-muted-foreground leading-none tabular-nums">{apps.length}</span>
           </h2>
           <Button size="sm" onClick={() => { setEditingApp(null); setShowForm(true) }} disabled={!selectedCat || selectedCat === ALL_CAT}>
             <Plus className="h-4 w-4" /> 添加应用
@@ -196,8 +196,8 @@ export default function AppsPage() {
               renderItem={app => (
                 <div
                   onClick={() => setSelectedApp(app)}
-                  className={`group/card flex cursor-pointer flex-col rounded-xl border bg-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-md dark:shadow-none dark:hover:shadow-[0_8px_24px_-8px_oklch(0.05_0.02_262/0.6)]
-                    ${selectedApp?.id === app.id ? 'border-brand/60 ring-2 ring-brand/35' : 'border-border hover:border-brand/55'}`}
+                  className={`group/card flex h-[132px] cursor-pointer flex-col overflow-hidden rounded-[10px] border bg-card transition-colors duration-150
+                    ${selectedApp?.id === app.id ? 'border-brand/60 ring-1 ring-brand/35' : 'border-border hover:border-foreground/20 hover:bg-surface/40'}`}
                 >
                   <AppCardHead
                     app={app}
@@ -205,29 +205,33 @@ export default function AppsPage() {
                     status={<StatusChip installed={app.is_installed} />}
                   />
 
-                  {/* Body：无描述只留一行高留白，避免满屏「暂无描述」噪音 */}
-                  <div className="min-h-5 flex-1 px-4 pb-1">
+                  {/* Body：描述单行截断（完整描述见详情面板），卡片高度恒定 132px 网格不参差 */}
+                  <div className="flex-1 px-3.5 pt-1.5">
                     {app.description && (
-                      <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
+                      <p className="truncate text-[11.5px] text-muted-foreground" title={app.description}>
                         {app.description}
                       </p>
                     )}
                   </div>
 
-                  {/* Footer：编辑降为图标，启动作为卡片主操作（品牌色文字按钮） */}
-                  <div className="mt-1 flex flex-wrap items-center gap-1 border-t border-border/60 px-2.5 py-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="编辑应用" aria-label="编辑应用"
+                  {/* Footer：发丝线分隔，启动为品牌色描边幽灵按钮，编辑/删除降为图标 */}
+                  <div className="flex items-center gap-1 border-t border-border px-2.5 py-2">
+                    {app.path && app.is_installed ? (
+                      <Button variant="ghost" size="sm"
+                        className="h-7 gap-1.5 rounded-md border border-brand/40 px-2.5 text-[11.5px] font-medium text-brand hover:bg-brand-soft hover:text-brand"
+                        onClick={e => { e.stopPropagation(); handleLaunch(app.path!) }}>
+                        <Play className="h-3 w-3" /> 启动
+                      </Button>
+                    ) : <span />}
+                    <div className="flex-1" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" title="编辑应用" aria-label="编辑应用"
                       onClick={e => { e.stopPropagation(); setEditingApp(app); setShowForm(true) }}>
                       <Edit2 className="h-3.5 w-3.5" />
                     </Button>
-                    <div className="flex-1" />
-                    {app.path && app.is_installed && (
-                      <Button variant="ghost" size="sm"
-                        className="h-8 gap-1.5 px-2.5 text-xs font-semibold text-brand hover:bg-brand-soft hover:text-brand"
-                        onClick={e => { e.stopPropagation(); handleLaunch(app.path!) }}>
-                        <Play className="h-3.5 w-3.5" /> 启动
-                      </Button>
-                    )}
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-danger" title="删除应用" aria-label="删除应用"
+                      onClick={e => { e.stopPropagation(); if (confirm('删除此应用？')) handleDeleteApp(app.id) }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
               )}

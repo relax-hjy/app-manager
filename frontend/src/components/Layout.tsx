@@ -32,12 +32,12 @@ const navItems = [
   { to: '/docs', label: '文档管理', icon: FileText },
 ]
 
-/** 导航链接统一样式：激活态琥珀底 + 左侧钻切标记 */
+/** 导航链接统一样式：激活态扁平浅底药丸，无左侧标记（Linear 式） */
 function navClass({ isActive }: { isActive: boolean }) {
   return cn(
-    'relative flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+    'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] transition-colors',
     isActive
-      ? 'bg-brand-soft text-accent-foreground before:absolute before:inset-y-[20%] before:left-[7px] before:w-[2px] before:rounded-full before:bg-brand before:content-[""]'
+      ? 'bg-secondary font-medium text-secondary-foreground'
       : 'text-muted-foreground hover:bg-secondary/60 hover:text-secondary-foreground'
   )
 }
@@ -45,14 +45,14 @@ function navClass({ isActive }: { isActive: boolean }) {
 export default function Layout() {
   return (
     <div className="relative flex h-screen flex-col">
-      {/* 顶部导航 */}
-      <header className="relative z-10 flex h-13 shrink-0 items-center gap-1 border-b border-border/70 bg-card/80 px-5 backdrop-blur-md">
+      {/* 顶部导航：48px 发丝线底边，扁平无卡片底 */}
+      <header className="relative z-10 flex h-12 shrink-0 items-center gap-1 border-b border-border bg-background px-4">
         <div className="mr-6 flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-brand/25 bg-brand-soft shadow-[0_0_12px_-4px_oklch(0.511_0.23_277/0.45)] dark:border-brand/30 dark:bg-[oklch(0.26_0.035_264)]">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card">
             <DiamondLogo className="h-4 w-4" />
           </div>
-          <span className="text-sm font-bold tracking-wide">
-            App<span className="text-primary">Manager</span>
+          <span className="text-[13px] font-semibold tracking-tight">
+            App<span className="text-muted-foreground">Manager</span>
           </span>
         </div>
 

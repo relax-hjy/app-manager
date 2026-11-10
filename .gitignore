@@ -27,3 +27,9 @@ docs/.obsidian/
 # 调试残留
 /fs.json
 /req.json
+
+# Qoder 会话产物（截图/设计稿/字体沙盒，含 node_modules）
+.qoder-demo/
+
+# 本地草稿
+test/

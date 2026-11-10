@@ -9,7 +9,7 @@ export function Panel({ className, children }: { className?: string; children: R
   return (
     <aside
       className={cn(
-        'flex shrink-0 animate-in slide-in-from-right-4 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm fade-in-0 duration-200',
+        'flex shrink-0 animate-in slide-in-from-right-4 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground fade-in-0 duration-200',
         className
       )}
     >
